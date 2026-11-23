@@ -1,0 +1,868 @@
+{
+  "schemaVersion": 1,
+  "rules": [
+    {
+      "id": "deepseek-v4-1-flash",
+      "match": "^deepseek-v4[.-]1[.-]flash(?:$|[-.])",
+      "family": "deepseek",
+      "vendorGroup": "DeepSeek",
+      "contextWindow": 1048576,
+      "maxTokens": 65536,
+      "input": ["text", "image"],
+      "efforts": ["off", "low", "high", "max"],
+      "allowOff": true,
+      "compat": {
+        "thinkingFormat": "deepseek",
+        "requiresReasoningContentOnAssistantMessages": true
+      },
+      "notes": "V4 flash accepts image input; DeepSeek dispatch needs the replayed reasoning_content field."
+    },
+    {
+      "id": "deepseek-flash",
+      "match": "^deepseek(?:-v\\d+(?:[.-]\\d+)?)?[.-]flash(?:$|[-.])",
+      "family": "deepseek",
+      "vendorGroup": "DeepSeek",
+      "contextWindow": 1048576,
+      "maxTokens": 65536,
+      "input": ["text", "image"],
+      "efforts": ["off", "low", "high", "max"],
+      "allowOff": true,
+      "compat": {
+        "thinkingFormat": "deepseek",
+        "requiresReasoningContentOnAssistantMessages": true
+      },
+      "notes": "Any V4-generation flash variant accepts image input."
+    },
+    {
+      "id": "deepseek-v4",
+      "match": "^deepseek-v4(?:$|[-.])",
+      "family": "deepseek",
+      "vendorGroup": "DeepSeek",
+      "contextWindow": 1048576,
+      "maxTokens": 65536,
+      "input": ["text"],
+      "efforts": ["off", "low", "high", "max"],
+      "allowOff": true,
+      "compat": {
+        "thinkingFormat": "deepseek",
+        "requiresReasoningContentOnAssistantMessages": true
+      }
+    },
+    {
+      "id": "deepseek-r1",
+      "match": "^deepseek-r1(?:$|[-.])",
+      "family": "deepseek",
+      "vendorGroup": "DeepSeek",
+      "contextWindow": 131072,
+      "maxTokens": 8192,
+      "input": ["text"],
+      "efforts": ["high"],
+      "allowOff": false,
+      "compat": {
+        "thinkingFormat": "deepseek",
+        "requiresReasoningContentOnAssistantMessages": true
+      },
+      "notes": "R1 always reasons; off is not a request its endpoint accepts."
+    },
+    {
+      "id": "deepseek-v3",
+      "match": "^deepseek-v3(?:$|[-.])",
+      "family": "deepseek",
+      "vendorGroup": "DeepSeek",
+      "contextWindow": 131072,
+      "maxTokens": 8192,
+      "input": ["text"],
+      "efforts": ["off", "high"],
+      "allowOff": true,
+      "compat": {
+        "thinkingFormat": "deepseek",
+        "requiresReasoningContentOnAssistantMessages": true
+      }
+    },
+    {
+      "id": "deepseek-chat",
+      "match": "^deepseek-chat(?:$|[-.])",
+      "family": "deepseek",
+      "vendorGroup": "DeepSeek",
+      "contextWindow": 131072,
+      "maxTokens": 8192,
+      "input": ["text"],
+      "notes": "Non-reasoning alias of the V3 chat endpoint."
+    },
+    {
+      "id": "deepseek-reasoner",
+      "match": "^deepseek-reasoner(?:$|[-.])",
+      "family": "deepseek",
+      "vendorGroup": "DeepSeek",
+      "contextWindow": 131072,
+      "maxTokens": 8192,
+      "input": ["text"],
+      "efforts": ["high"],
+      "allowOff": false,
+      "compat": {
+        "thinkingFormat": "deepseek",
+        "requiresReasoningContentOnAssistantMessages": true
+      }
+    },
+    {
+      "id": "deepseek-general",
+      "match": "^deepseek(?:$|[-.])",
+      "family": "deepseek",
+      "vendorGroup": "DeepSeek",
+      "contextWindow": 1048576,
+      "maxTokens": 65536,
+      "input": ["text"],
+      "efforts": ["off", "low", "high", "max"],
+      "allowOff": true,
+      "compat": {
+        "thinkingFormat": "deepseek",
+        "requiresReasoningContentOnAssistantMessages": true
+      },
+      "notes": "Fallback for DeepSeek ids outside the enumerated generations."
+    },
+    {
+      "id": "claude-sonnet-5",
+      "match": "^claude-sonnet-5(?:$|[-.])",
+      "family": "claude",
+      "vendorGroup": "Anthropic",
+      "contextWindow": 200000,
+      "maxTokens": 64000,
+      "input": ["text", "image"],
+      "efforts": ["off", "low", "medium", "high", "xhigh", "max"],
+      "allowOff": true
+    },
+    {
+      "id": "claude-opus-5",
+      "match": "^claude-opus-5(?:$|[-.])",
+      "family": "claude",
+      "vendorGroup": "Anthropic",
+      "contextWindow": 200000,
+      "maxTokens": 64000,
+      "input": ["text", "image"],
+      "efforts": ["off", "low", "medium", "high", "xhigh", "max"],
+      "allowOff": true
+    },
+    {
+      "id": "claude-sonnet-4-6-plus",
+      "match": "^claude-sonnet-4[.-][6-9](?:$|[-.])",
+      "family": "claude",
+      "vendorGroup": "Anthropic",
+      "contextWindow": 200000,
+      "maxTokens": 64000,
+      "input": ["text", "image"],
+      "efforts": ["off", "low", "medium", "high", "xhigh", "max"],
+      "allowOff": true,
+      "notes": "Adaptive thinking from 4.6 onward exposes xhigh and max."
+    },
+    {
+      "id": "claude-opus-4-6-plus",
+      "match": "^claude-opus-4[.-][6-9](?:$|[-.])",
+      "family": "claude",
+      "vendorGroup": "Anthropic",
+      "contextWindow": 200000,
+      "maxTokens": 64000,
+      "input": ["text", "image"],
+      "efforts": ["off", "low", "medium", "high", "xhigh", "max"],
+      "allowOff": true,
+      "notes": "Adaptive thinking from 4.6 onward exposes xhigh and max."
+    },
+    {
+      "id": "claude-opus-4",
+      "match": "^claude-opus-4(?:$|[-.])",
+      "family": "claude",
+      "vendorGroup": "Anthropic",
+      "contextWindow": 200000,
+      "maxTokens": 64000,
+      "input": ["text", "image"],
+      "efforts": ["off", "low", "medium", "high"],
+      "allowOff": true
+    },
+    {
+      "id": "claude-sonnet-4",
+      "match": "^claude-sonnet-4(?:$|[-.])",
+      "family": "claude",
+      "vendorGroup": "Anthropic",
+      "contextWindow": 200000,
+      "maxTokens": 64000,
+      "input": ["text", "image"],
+      "efforts": ["off", "low", "medium", "high"],
+      "allowOff": true
+    },
+    {
+      "id": "claude-haiku-4",
+      "match": "^claude-haiku-4(?:$|[-.])",
+      "family": "claude",
+      "vendorGroup": "Anthropic",
+      "contextWindow": 200000,
+      "maxTokens": 16384,
+      "input": ["text", "image"],
+      "efforts": ["off", "low", "medium", "high"],
+      "allowOff": true
+    },
+    {
+      "id": "claude-3-7-sonnet",
+      "match": "^claude-3[.-]7-sonnet(?:$|[-.])",
+      "family": "claude",
+      "vendorGroup": "Anthropic",
+      "contextWindow": 200000,
+      "maxTokens": 64000,
+      "input": ["text", "image"],
+      "efforts": ["off", "low", "medium", "high"],
+      "allowOff": true
+    },
+    {
+      "id": "claude-3-5",
+      "match": "^claude-3[.-]5(?:$|[-.])",
+      "family": "claude",
+      "vendorGroup": "Anthropic",
+      "contextWindow": 200000,
+      "maxTokens": 8192,
+      "input": ["text", "image"],
+      "notes": "The 3.5 generation does not reason; no effort levels are offered."
+    },
+    {
+      "id": "claude-general",
+      "match": "^claude(?:$|[-.])",
+      "family": "claude",
+      "vendorGroup": "Anthropic",
+      "contextWindow": 200000,
+      "maxTokens": 64000,
+      "input": ["text", "image"],
+      "efforts": ["off", "low", "medium", "high"],
+      "allowOff": true,
+      "notes": "Fallback for Claude ids outside the enumerated generations."
+    },
+    {
+      "id": "gpt-6",
+      "match": "^gpt-6(?:$|[-.])",
+      "family": "openai",
+      "vendorGroup": "OpenAI",
+      "contextWindow": 400000,
+      "maxTokens": 128000,
+      "input": ["text", "image"],
+      "efforts": ["off", "minimal", "low", "medium", "high"],
+      "allowOff": true,
+      "compat": {
+        "thinkingFormat": "openai"
+      },
+      "capabilities": {
+        "supportsDeveloperRole": true
+      },
+      "notes": "supportsDeveloperRole is a model capability; a gateway compat entry overrides it."
+    },
+    {
+      "id": "gpt-5",
+      "match": "^gpt-5(?:$|[-.])",
+      "family": "openai",
+      "vendorGroup": "OpenAI",
+      "contextWindow": 400000,
+      "maxTokens": 128000,
+      "input": ["text", "image"],
+      "efforts": ["off", "minimal", "low", "medium", "high"],
+      "allowOff": true,
+      "compat": {
+        "thinkingFormat": "openai"
+      },
+      "capabilities": {
+        "supportsDeveloperRole": true
+      },
+      "notes": "supportsDeveloperRole is a model capability; a gateway compat entry overrides it."
+    },
+    {
+      "id": "gpt-4-1",
+      "match": "^gpt-4[.-]1(?:$|[-.])",
+      "family": "openai",
+      "vendorGroup": "OpenAI",
+      "contextWindow": 1047576,
+      "maxTokens": 32768,
+      "input": ["text", "image"],
+      "notes": "Non-reasoning; no effort levels are offered."
+    },
+    {
+      "id": "gpt-4o",
+      "match": "^gpt-4o(?:$|[-.])",
+      "family": "openai",
+      "vendorGroup": "OpenAI",
+      "contextWindow": 128000,
+      "maxTokens": 16384,
+      "input": ["text", "image"],
+      "notes": "Non-reasoning; no effort levels are offered."
+    },
+    {
+      "id": "o3",
+      "match": "^o3(?:$|[-.])",
+      "family": "openai",
+      "vendorGroup": "OpenAI",
+      "contextWindow": 200000,
+      "maxTokens": 100000,
+      "input": ["text", "image"],
+      "efforts": ["low", "medium", "high"],
+      "allowOff": false,
+      "compat": {
+        "thinkingFormat": "openai"
+      },
+      "capabilities": {
+        "supportsDeveloperRole": true
+      },
+      "notes": "Always reasons; off is not a request the endpoint accepts."
+    },
+    {
+      "id": "o4",
+      "match": "^o4(?:$|[-.])",
+      "family": "openai",
+      "vendorGroup": "OpenAI",
+      "contextWindow": 200000,
+      "maxTokens": 100000,
+      "input": ["text", "image"],
+      "efforts": ["low", "medium", "high"],
+      "allowOff": false,
+      "compat": {
+        "thinkingFormat": "openai"
+      },
+      "capabilities": {
+        "supportsDeveloperRole": true
+      },
+      "notes": "Always reasons; off is not a request the endpoint accepts."
+    },
+    {
+      "id": "o1",
+      "match": "^o1(?:$|[-.])",
+      "family": "openai",
+      "vendorGroup": "OpenAI",
+      "contextWindow": 200000,
+      "maxTokens": 100000,
+      "input": ["text", "image"],
+      "efforts": ["low", "medium", "high"],
+      "allowOff": false,
+      "compat": {
+        "thinkingFormat": "openai"
+      },
+      "capabilities": {
+        "supportsDeveloperRole": true
+      },
+      "notes": "Always reasons; off is not a request the endpoint accepts."
+    },
+    {
+      "id": "gpt-oss",
+      "match": "^gpt-oss(?:$|[-.])",
+      "family": "openai",
+      "vendorGroup": "OpenAI",
+      "contextWindow": 131072,
+      "maxTokens": 32768,
+      "input": ["text"],
+      "efforts": ["low", "medium", "high"],
+      "allowOff": false,
+      "compat": {
+        "thinkingFormat": "openai"
+      }
+    },
+    {
+      "id": "openai-general",
+      "match": "^gpt(?:$|[-.])",
+      "family": "openai",
+      "vendorGroup": "OpenAI",
+      "contextWindow": 128000,
+      "maxTokens": 16384,
+      "input": ["text", "image"],
+      "notes": "Fallback for OpenAI ids outside the enumerated generations; no effort levels are claimed."
+    },
+    {
+      "id": "gemini-4-hydrogen",
+      "match": "^gemini-4[.-](?:hydrogen|pro)(?:$|[-.])",
+      "family": "gemini",
+      "vendorGroup": "Google",
+      "contextWindow": 1048576,
+      "maxTokens": 65536,
+      "input": ["text", "image"],
+      "efforts": ["off", "low", "medium", "high", "xhigh"],
+      "allowOff": true,
+      "notes": "The google-generative-ai adapter clamps efforts to minimal/low/medium/high; xhigh is only a hint for OpenAI-compatible Gemini relays."
+    },
+    {
+      "id": "gemini-4",
+      "match": "^gemini-4(?:$|[-.])",
+      "family": "gemini",
+      "vendorGroup": "Google",
+      "contextWindow": 1048576,
+      "maxTokens": 65536,
+      "input": ["text", "image"],
+      "efforts": ["off", "minimal", "low", "medium", "high"],
+      "allowOff": true,
+      "notes": "The google-generative-ai adapter clamps efforts to minimal/low/medium/high."
+    },
+    {
+      "id": "gemini-3",
+      "match": "^gemini-3(?:$|[-.])",
+      "family": "gemini",
+      "vendorGroup": "Google",
+      "contextWindow": 1048576,
+      "maxTokens": 65536,
+      "input": ["text", "image"],
+      "efforts": ["off", "minimal", "low", "medium", "high"],
+      "allowOff": true,
+      "notes": "The google-generative-ai adapter clamps efforts to minimal/low/medium/high."
+    },
+    {
+      "id": "gemini-2-5",
+      "match": "^gemini-2[.-]5(?:$|[-.])",
+      "family": "gemini",
+      "vendorGroup": "Google",
+      "contextWindow": 1048576,
+      "maxTokens": 65536,
+      "input": ["text", "image"],
+      "efforts": ["off", "minimal", "low", "medium", "high"],
+      "allowOff": true,
+      "notes": "The google-generative-ai adapter clamps efforts to minimal/low/medium/high."
+    },
+    {
+      "id": "gemini-2-0",
+      "match": "^gemini-2[.-]0(?:$|[-.])",
+      "family": "gemini",
+      "vendorGroup": "Google",
+      "contextWindow": 1048576,
+      "maxTokens": 65536,
+      "input": ["text", "image"],
+      "efforts": ["off", "minimal", "low", "medium", "high"],
+      "allowOff": true,
+      "notes": "The google-generative-ai adapter clamps efforts to minimal/low/medium/high."
+    },
+    {
+      "id": "gemini-general",
+      "match": "^gemini(?:$|[-.])",
+      "family": "gemini",
+      "vendorGroup": "Google",
+      "contextWindow": 1048576,
+      "maxTokens": 65536,
+      "input": ["text", "image"],
+      "efforts": ["off", "minimal", "low", "medium", "high"],
+      "allowOff": true,
+      "notes": "Fallback for Gemini ids outside the enumerated generations; the google-generative-ai adapter clamps efforts to minimal/low/medium/high."
+    },
+    {
+      "id": "gemma-general",
+      "match": "^gemma(?:$|[-.])",
+      "family": "gemma",
+      "vendorGroup": "Google",
+      "contextWindow": 262144,
+      "maxTokens": 32768,
+      "input": ["text", "image"],
+      "efforts": ["off", "minimal", "high"],
+      "allowOff": true,
+      "notes": "Gemma 4 exposes minimal and high thinking only; the google-generative-ai adapter clamps to minimal/low/medium/high."
+    },
+    {
+      "id": "glm-vision",
+      "match": "^glm-(?:4[.-][5-7]|5(?:[.-]\\d+)?)[.-]?(?:v|vision|flash)(?:$|[-.])",
+      "family": "glm",
+      "vendorGroup": "Zhipu GLM",
+      "contextWindow": 200000,
+      "maxTokens": 32768,
+      "input": ["text", "image"],
+      "efforts": ["off", "low", "medium", "high"],
+      "allowOff": true,
+      "compat": {
+        "thinkingFormat": "zai"
+      },
+      "notes": "GLM vision variants carry image input; the flash variant is the vision-capable one."
+    },
+    {
+      "id": "glm-5-3",
+      "match": "^glm-5[.-]3(?:$|[-.])",
+      "family": "glm",
+      "vendorGroup": "Zhipu GLM",
+      "contextWindow": 200000,
+      "maxTokens": 65536,
+      "input": ["text"],
+      "efforts": ["off", "low", "medium", "high"],
+      "allowOff": true,
+      "compat": {
+        "thinkingFormat": "zai"
+      }
+    },
+    {
+      "id": "glm-5-2",
+      "match": "^glm-5[.-]2(?:$|[-.])",
+      "family": "glm",
+      "vendorGroup": "Zhipu GLM",
+      "contextWindow": 200000,
+      "maxTokens": 65536,
+      "input": ["text"],
+      "efforts": ["off", "low", "medium", "high"],
+      "allowOff": true,
+      "compat": {
+        "thinkingFormat": "zai"
+      }
+    },
+    {
+      "id": "glm-5",
+      "match": "^glm-5(?:$|[-.])",
+      "family": "glm",
+      "vendorGroup": "Zhipu GLM",
+      "contextWindow": 200000,
+      "maxTokens": 65536,
+      "input": ["text"],
+      "efforts": ["off", "low", "medium", "high"],
+      "allowOff": true,
+      "compat": {
+        "thinkingFormat": "zai"
+      }
+    },
+    {
+      "id": "glm-4-7",
+      "match": "^glm-4[.-]7(?:$|[-.])",
+      "family": "glm",
+      "vendorGroup": "Zhipu GLM",
+      "contextWindow": 200000,
+      "maxTokens": 32768,
+      "input": ["text"],
+      "efforts": ["off", "low", "medium", "high"],
+      "allowOff": true,
+      "compat": {
+        "thinkingFormat": "zai"
+      }
+    },
+    {
+      "id": "glm-4-6",
+      "match": "^glm-4[.-]6(?:$|[-.])",
+      "family": "glm",
+      "vendorGroup": "Zhipu GLM",
+      "contextWindow": 200000,
+      "maxTokens": 32768,
+      "input": ["text"],
+      "efforts": ["off", "low", "medium", "high"],
+      "allowOff": true,
+      "compat": {
+        "thinkingFormat": "zai"
+      }
+    },
+    {
+      "id": "glm-4-5",
+      "match": "^glm-4[.-]5(?:$|[-.])",
+      "family": "glm",
+      "vendorGroup": "Zhipu GLM",
+      "contextWindow": 128000,
+      "maxTokens": 32768,
+      "input": ["text"],
+      "efforts": ["off", "low", "medium", "high"],
+      "allowOff": true,
+      "compat": {
+        "thinkingFormat": "zai"
+      }
+    },
+    {
+      "id": "glm-general",
+      "match": "^(?:zai-)?glm(?:$|[-.])",
+      "family": "glm",
+      "vendorGroup": "Zhipu GLM",
+      "contextWindow": 200000,
+      "maxTokens": 32768,
+      "input": ["text"],
+      "efforts": ["off", "low", "medium", "high"],
+      "allowOff": true,
+      "compat": {
+        "thinkingFormat": "zai"
+      },
+      "notes": "Fallback for GLM ids outside the enumerated generations."
+    },
+    {
+      "id": "qwen3-5",
+      "match": "^qwen-?3[.-]5(?:$|[-.])",
+      "family": "qwen",
+      "vendorGroup": "Qwen",
+      "contextWindow": 262144,
+      "maxTokens": 32768,
+      "input": ["text", "image"],
+      "efforts": ["off", "low", "medium", "high"],
+      "allowOff": true,
+      "compat": {
+        "thinkingFormat": "qwen"
+      },
+      "notes": "Qwen 3.5 accepts image input."
+    },
+    {
+      "id": "qwen3-vl-omni",
+      "match": "^qwen-?3(?:[.-]\\d+)?[.-](?:vl|omni)(?:$|[-.])",
+      "family": "qwen",
+      "vendorGroup": "Qwen",
+      "contextWindow": 131072,
+      "maxTokens": 32768,
+      "input": ["text", "image"],
+      "efforts": ["off", "low", "medium", "high"],
+      "allowOff": true,
+      "compat": {
+        "thinkingFormat": "qwen"
+      }
+    },
+    {
+      "id": "qwen3",
+      "match": "^qwen-?3(?:$|[-.])",
+      "family": "qwen",
+      "vendorGroup": "Qwen",
+      "contextWindow": 131072,
+      "maxTokens": 32768,
+      "input": ["text"],
+      "efforts": ["off", "low", "medium", "high"],
+      "allowOff": true,
+      "compat": {
+        "thinkingFormat": "qwen"
+      }
+    },
+    {
+      "id": "qwq",
+      "match": "^qwq(?:$|[-.])",
+      "family": "qwen",
+      "vendorGroup": "Qwen",
+      "contextWindow": 131072,
+      "maxTokens": 32768,
+      "input": ["text"],
+      "efforts": ["high"],
+      "allowOff": false,
+      "compat": {
+        "thinkingFormat": "qwen"
+      },
+      "notes": "QwQ always reasons; off is not a request its endpoint accepts."
+    },
+    {
+      "id": "qwen-vl",
+      "match": "^qwen-?(?:2[.-]5)?[.-]?vl(?:$|[-.])",
+      "family": "qwen",
+      "vendorGroup": "Qwen",
+      "contextWindow": 131072,
+      "maxTokens": 8192,
+      "input": ["text", "image"]
+    },
+    {
+      "id": "qwen2-5",
+      "match": "^qwen-?2[.-]5(?:$|[-.])",
+      "family": "qwen",
+      "vendorGroup": "Qwen",
+      "contextWindow": 131072,
+      "maxTokens": 8192,
+      "input": ["text"],
+      "notes": "Qwen 2.5 is non-reasoning; no effort levels are offered."
+    },
+    {
+      "id": "qwen-general",
+      "match": "^qwen(?:$|[-.])",
+      "family": "qwen",
+      "vendorGroup": "Qwen",
+      "contextWindow": 131072,
+      "maxTokens": 8192,
+      "input": ["text"],
+      "notes": "Fallback for Qwen ids outside the enumerated generations; no effort levels are claimed."
+    },
+    {
+      "id": "kimi-k2-thinking",
+      "match": "^kimi-k2[.-]?thinking(?:$|[-.])",
+      "family": "kimi",
+      "vendorGroup": "Moonshot",
+      "contextWindow": 262144,
+      "maxTokens": 16384,
+      "input": ["text"],
+      "efforts": ["off", "low", "medium", "high"],
+      "allowOff": true
+    },
+    {
+      "id": "kimi-k2-5",
+      "match": "^kimi-k2[.-]5(?:$|[-.])",
+      "family": "kimi",
+      "vendorGroup": "Moonshot",
+      "contextWindow": 262144,
+      "maxTokens": 16384,
+      "input": ["text"],
+      "efforts": ["off", "low", "medium", "high"],
+      "allowOff": true
+    },
+    {
+      "id": "kimi-k2",
+      "match": "^kimi-k2(?:$|[-.])",
+      "family": "kimi",
+      "vendorGroup": "Moonshot",
+      "contextWindow": 262144,
+      "maxTokens": 16384,
+      "input": ["text"]
+    },
+    {
+      "id": "moonshot-v1",
+      "match": "^moonshot-v1(?:$|[-.])",
+      "family": "kimi",
+      "vendorGroup": "Moonshot",
+      "contextWindow": 128000,
+      "maxTokens": 8192,
+      "input": ["text"]
+    },
+    {
+      "id": "kimi-general",
+      "match": "^kimi(?:$|[-.])",
+      "family": "kimi",
+      "vendorGroup": "Moonshot",
+      "contextWindow": 262144,
+      "maxTokens": 16384,
+      "input": ["text"],
+      "efforts": ["off", "low", "medium", "high"],
+      "allowOff": true,
+      "notes": "Fallback for Kimi ids outside the enumerated generations."
+    },
+    {
+      "id": "minimax-m2",
+      "match": "^minimax-m2(?:$|[-.])",
+      "family": "minimax",
+      "vendorGroup": "MiniMax",
+      "contextWindow": 204800,
+      "maxTokens": 65536,
+      "input": ["text"],
+      "efforts": ["off", "low", "medium", "high"],
+      "allowOff": true
+    },
+    {
+      "id": "minimax-m1",
+      "match": "^minimax-m1(?:$|[-.])",
+      "family": "minimax",
+      "vendorGroup": "MiniMax",
+      "contextWindow": 1000000,
+      "maxTokens": 65536,
+      "input": ["text"],
+      "efforts": ["high"],
+      "allowOff": false,
+      "notes": "M1 is a reasoning model; off is not a request its endpoint accepts."
+    },
+    {
+      "id": "minimax-general",
+      "match": "^minimax(?:$|[-.])",
+      "family": "minimax",
+      "vendorGroup": "MiniMax",
+      "contextWindow": 204800,
+      "maxTokens": 65536,
+      "input": ["text"],
+      "efforts": ["off", "low", "medium", "high"],
+      "allowOff": true,
+      "notes": "Fallback for MiniMax ids outside the enumerated generations."
+    },
+    {
+      "id": "pixtral",
+      "match": "^pixtral(?:$|[-.])",
+      "family": "mistral",
+      "vendorGroup": "Mistral",
+      "contextWindow": 131072,
+      "maxTokens": 32768,
+      "input": ["text", "image"]
+    },
+    {
+      "id": "magistral",
+      "match": "^magistral(?:$|[-.])",
+      "family": "mistral",
+      "vendorGroup": "Mistral",
+      "contextWindow": 131072,
+      "maxTokens": 32768,
+      "input": ["text"],
+      "efforts": ["high"],
+      "allowOff": false,
+      "notes": "Magistral always reasons; off is not a request its endpoint accepts."
+    },
+    {
+      "id": "mistral-large",
+      "match": "^mistral-large(?:$|[-.])",
+      "family": "mistral",
+      "vendorGroup": "Mistral",
+      "contextWindow": 131072,
+      "maxTokens": 32768,
+      "input": ["text"]
+    },
+    {
+      "id": "codestral",
+      "match": "^codestral(?:$|[-.])",
+      "family": "mistral",
+      "vendorGroup": "Mistral",
+      "contextWindow": 262144,
+      "maxTokens": 32768,
+      "input": ["text"]
+    },
+    {
+      "id": "mistral-general",
+      "match": "^(?:open-|labs-)?(?:mistral|mixtral|ministral|devstral|voxtral|magistral|pixtral|codestral)(?:$|[-.])",
+      "family": "mistral",
+      "vendorGroup": "Mistral",
+      "contextWindow": 131072,
+      "maxTokens": 32768,
+      "input": ["text"],
+      "notes": "Fallback for Mistral family ids outside the enumerated generations."
+    },
+    {
+      "id": "grok-4",
+      "match": "^grok-4(?:$|[-.])",
+      "family": "grok",
+      "vendorGroup": "xAI",
+      "contextWindow": 256000,
+      "maxTokens": 32768,
+      "input": ["text", "image"],
+      "efforts": ["off", "low", "medium", "high"],
+      "allowOff": true
+    },
+    {
+      "id": "grok-3",
+      "match": "^grok-3(?:$|[-.])",
+      "family": "grok",
+      "vendorGroup": "xAI",
+      "contextWindow": 131072,
+      "maxTokens": 32768,
+      "input": ["text"]
+    },
+    {
+      "id": "grok-general",
+      "match": "^grok(?:$|[-.])",
+      "family": "grok",
+      "vendorGroup": "xAI",
+      "contextWindow": 131072,
+      "maxTokens": 32768,
+      "input": ["text"],
+      "notes": "Fallback for xAI ids outside the enumerated generations."
+    },
+    {
+      "id": "llama-4",
+      "match": "^llama-4(?:$|[-.])",
+      "family": "llama",
+      "vendorGroup": "Meta Llama",
+      "contextWindow": 1048576,
+      "maxTokens": 32768,
+      "input": ["text", "image"]
+    },
+    {
+      "id": "llama-3-3",
+      "match": "^llama-3[.-]3(?:$|[-.])",
+      "family": "llama",
+      "vendorGroup": "Meta Llama",
+      "contextWindow": 131072,
+      "maxTokens": 32768,
+      "input": ["text"]
+    },
+    {
+      "id": "llama-3-2-vision",
+      "match": "^llama-3[.-]2(?:[.-]\\d+[bm]?)?[.-]vision(?:$|[-.])",
+      "family": "llama",
+      "vendorGroup": "Meta Llama",
+      "contextWindow": 131072,
+      "maxTokens": 8192,
+      "input": ["text", "image"],
+      "notes": "The vision variants accept image input; the text-only variants do not."
+    },
+    {
+      "id": "llama-3-2",
+      "match": "^llama-3[.-]2(?:$|[-.])",
+      "family": "llama",
+      "vendorGroup": "Meta Llama",
+      "contextWindow": 131072,
+      "maxTokens": 8192,
+      "input": ["text"]
+    },
+    {
+      "id": "llama-3-general",
+      "match": "^llama-3(?:$|[-.])",
+      "family": "llama",
+      "vendorGroup": "Meta Llama",
+      "contextWindow": 131072,
+      "maxTokens": 8192,
+      "input": ["text"],
+      "notes": "Fallback for Llama 3.x ids outside the enumerated generations."
+    }
+  ]
+}

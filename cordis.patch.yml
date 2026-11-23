@@ -1,0 +1,5 @@
+- insert:
+    - id: xiaoxing-api-provider-manager
+      name: '@xiaoxing/api-provider-manager'
+      config:
+        dataDir: !!js dshHomePath('xiaoxing', 'api-manager')

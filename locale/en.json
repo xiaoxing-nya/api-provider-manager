@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Xiaoxing API provider manager",
+    "description": "Automate onboarding, metadata enrichment, compatibility probing, and live model sync for third-party custom API providers while avoiding DSH native providers. Open Settings -> Xiaoxing API manager or invoke the xiaoxing_api_manager tool."
+  }
+}
