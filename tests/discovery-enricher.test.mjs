@@ -1409,7 +1409,7 @@ describe('auditProvider', () => {
     assert.equal(typeof audit.summary.message, 'string')
   })
 
-  test('bare configured reasoningEfforts:false yields to registry/catalog facts unless manually overridden', () => {
+  test('reasoningEfforts prefers registry/catalog over configured unless manually overridden', () => {
     const registryCache = {
       models: {
         'claude-sonnet-5-5': {
@@ -1429,6 +1429,14 @@ describe('auditProvider', () => {
     assert.deepEqual(healed.profile.reasoningEfforts, { low: 'low', medium: 'medium', high: 'high', xhigh: 'xhigh', max: 'max' })
     assert.equal(healed.provenance.reasoningEfforts, 'remote-registry')
 
+    const configuredStaleMap = enrichModel({
+      id: 'claude-sonnet-5-5',
+      configured: { id: 'claude-sonnet-5-5', reasoningEfforts: { low: 'low', max: 'max' } },
+      registryCache,
+    })
+    assert.deepEqual(configuredStaleMap.profile.reasoningEfforts, { low: 'low', medium: 'medium', high: 'high', xhigh: 'xhigh', max: 'max' })
+    assert.equal(configuredStaleMap.provenance.reasoningEfforts, 'remote-registry')
+
     const manualOff = enrichModel({
       id: 'claude-sonnet-5-5',
       configured: configuredFalse,
@@ -1438,13 +1446,14 @@ describe('auditProvider', () => {
     assert.equal(manualOff.profile.reasoningEfforts, false)
     assert.equal(manualOff.provenance.reasoningEfforts, 'manual')
 
-    const customMap = enrichModel({
+    const manualCustomMap = enrichModel({
       id: 'claude-sonnet-5-5',
-      configured: { id: 'claude-sonnet-5-5', reasoningEfforts: { low: 'low', max: 'max' } },
+      configured: configuredFalse,
+      manualOverride: { reasoningEfforts: { low: 'low', max: 'max' } },
       registryCache,
     })
-    assert.deepEqual(customMap.profile.reasoningEfforts, { low: 'low', max: 'max' })
-    assert.equal(customMap.provenance.reasoningEfforts, 'configured')
+    assert.deepEqual(manualCustomMap.profile.reasoningEfforts, { low: 'low', max: 'max' })
+    assert.equal(manualCustomMap.provenance.reasoningEfforts, 'manual')
   })
 
   test('reports unknown models and preserves configured reasoning efforts', () => {

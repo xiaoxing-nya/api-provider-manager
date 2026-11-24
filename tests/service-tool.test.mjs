@@ -937,6 +937,7 @@ describe('custom provider onboarding', () => {
       assert.equal(Object.hasOwn(automatic, 'discovered') || Object.hasOwn(automatic, 'manualFields'), false)
       const overrides = await readStore(service, 'overrides.json')
       assert.deepEqual(overrides.providers[provider].models[id], { maxTokens: 8192, reasoningEfforts: false })
+      assert.equal(Object.hasOwn(overrides.providers[provider].models, automaticId), false, 'automatic models must not leave null tombstones in overrides.json')
 
       publishRegistry(300_000, 48_000, ['medium'])
       const rematched = await service.enrich({ provider })
@@ -1234,7 +1235,7 @@ describe('live model sync', () => {
     }
   })
 
-  test('mirror removes discontinued models and keeps configured reasoning efforts', async () => {
+  test('mirror removes discontinued models and keeps manually overridden reasoning efforts', async () => {
     const harness = new HostHarness()
     seedProvider(harness, 'mirror-relay', {
       ...SEEDED_PROFILE,
@@ -1253,6 +1254,12 @@ describe('live model sync', () => {
     harness.setEndpoint([FLASH_ENTRY, NEW_ENTRY])
     const service = await createService(harness)
     try {
+      const savedOverride = await service.saveOverride({
+        provider: 'mirror-relay',
+        model: 'deepseek-v4.1-flash',
+        override: { reasoningEfforts: { off: null, low: 'low', max: 'max' } },
+      })
+      assert.equal(savedOverride.ok, true)
       const policy = await service.setSyncPolicy({ provider: 'mirror-relay', policy: { syncMode: 'mirror' } })
       assert.equal(policy.ok, true)
       const synced = await service.syncProviderModels({ provider: 'mirror-relay', force: true })
@@ -1599,9 +1606,25 @@ describe('manual model overrides', () => {
         reset: ['contextWindow'],
       })
       assert.equal(resetField.ok, true)
+      assert.deepEqual(resetField.override, {})
+      const overridesAfterReset = await readStore(service, 'overrides.json')
+      assert.equal(overridesAfterReset.providers['override-relay'], undefined, 'clearing the last override removes the provider entry instead of persisting nulls')
       const live = harness.providers()['override-relay'].models[0]
       assert.equal(live.contextWindow, DEFAULT_CONTEXT_WINDOW)
       assert.equal(live.maxTokens, 4_096)
+
+      // Legacy null tombstones left in overrides.json are cleaned up on editor save.
+      await service.stores.overrides.update(data => {
+        data.providers['override-relay'] = { models: { 'local-test-model-zzz': { reasoningEfforts: null } } }
+        return data
+      })
+      const cleaned = await service.upsertProvider({
+        provider: 'override-relay',
+        models: [{ id: 'local-test-model-zzz', manualFields: {} }],
+      })
+      assert.equal(cleaned.ok, true, rendered(cleaned))
+      const overridesAfterClean = await readStore(service, 'overrides.json')
+      assert.equal(overridesAfterClean.providers['override-relay'], undefined)
     } finally {
       service.dispose()
     }

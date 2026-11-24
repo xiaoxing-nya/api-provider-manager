@@ -37,7 +37,7 @@ Host 仅使用 Node 内置模块。React 与 Web 侧服务由 DSH 模块表提�
 
 Cherry Studio 的模型元数据实践把“用户改过的字段”和“可再生成的元数据”分开。插件采用同样的取舍：
 
-- 手工覆盖只保存稀疏 delta（`overrides.json`），字段集合是 `name`、`contextWindow`、`maxTokens`、`input`、`reasoningEfforts`、`compat` 与 `allowOff`；`null` 表示清除该字段，不复制整份模型表。
+- 手工覆盖只保存稀疏非 `null` delta（`overrides.json`），字段集合是 `name`、`contextWindow`、`maxTokens`、`input`、`reasoningEfforts`、`compat`、`allowOff` 与 `upstreamModel`；请求中传 `null` 仅作清除指令，重算后从 `overrides.json` 移除，不留 `null` 占位，也不复制整份模型表。
 - 族规则独立于用户配置，作为最后的知识层；规则只描述模型族共有能力，不覆盖用户在 L1 的明确选择。
 - 导入侧接受 Cherry Studio 导出（`cherry-json`），避免用户为迁移而手工重抄模型清单。
 
@@ -96,7 +96,7 @@ Cherry Studio 的模型元数据实践把“用户改过的字段”和“可再
 |---|---|
 | `name` | manual → endpoint → remote-registry → local-snapshot → configured |
 | `contextWindow` / `maxTokens` / `input` | manual → endpoint → remote-registry → local-snapshot → configured → heuristic |
-| `reasoningEfforts` | manual → configured → endpoint → remote-registry → local-snapshot → heuristic |
+| `reasoningEfforts` | manual → endpoint → remote-registry → local-snapshot → configured → heuristic |
 | `compat` | manual → configured → heuristic → remote-registry → local-snapshot → fallback |
 
 `configured` 指现有 profile 中未被覆盖的字段。思考档位和 compat 让用户配置高于元数据，是因为档位名称与开关是用户刻意选择；容量和模态则由真正知道该模型的一层优先（在线注册表 `remote-registry` 优先于随包离线目录 `local-snapshot`）。当 `manualOverride` 指定了 `upstreamModel` 时，会以该上游参考模型 ID 查询在线注册表、离线目录与族规则并继承能力参数，但保留自定义模型原本的显示名称。`heuristic` 先匹配族规则，再落到 128000 上下文 / 16384 输出的保守默认值，输入模态默认 `text`。

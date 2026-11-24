@@ -440,6 +440,23 @@ function mergeManualOverride(existing, explicit) {
 }
 
 /**
+ * Strip explicit `null` reset markers before persisting to `overrides.json`.
+ *
+ * Returns `undefined` when no active manual overrides remain so the model entry
+ * is deleted from the store instead of leaving `null` tombstones behind.
+ * @param {unknown} delta - merged override delta.
+ * @returns {Record<string, unknown> | undefined} compacted delta or `undefined`.
+ */
+function compactOverrideDelta(delta) {
+  if (!isPlainObject(delta)) return undefined
+  const kept = {}
+  for (const [field, value] of Object.entries(delta)) {
+    if (value !== null) kept[field] = cloneValue(value)
+  }
+  return Object.keys(kept).length > 0 ? kept : undefined
+}
+
+/**
  * Validate one stored L1 override delta before it is persisted.
  *
  * A `null` value is an explicit reset and survives. Every other value must be
@@ -1705,20 +1722,18 @@ export class ApiManagerService {
     const editing = isPlainObject(entry.manualFields)
     const rematch = entry.rematch === true
     const explicit = explicitManagedFields(entry)
-    let editorDelta
+    let enrichmentOverride
+    let hasOverrideUpdate = false
+    let persistedOverride
     if (editing) {
-      // Keep generated reasoning refreshable. Older configured effort maps
-      // without an override retain their existing precedence unless rematched.
-      const canAddReasoning = autoEnrich || Object.hasOwn(entry, 'reasoningEfforts')
-      const refreshableReasoning = existingModel?.reasoningEfforts === undefined
-        || existingModel?.reasoningEfforts === false
-        || rematch
-      if (canAddReasoning && refreshableReasoning
-        && !Object.hasOwn(explicit, 'reasoningEfforts') && !Object.hasOwn(override ?? {}, 'reasoningEfforts')) {
-        explicit.reasoningEfforts = null
-      }
+      const hasLegacyNulls = isPlainObject(override) && Object.values(override).some(value => value === null)
       if (Object.keys(explicit).length > 0) {
-        editorDelta = mergeManualOverride(override, validateOverrideDelta(explicit))
+        enrichmentOverride = mergeManualOverride(override, validateOverrideDelta(explicit))
+        hasOverrideUpdate = true
+        persistedOverride = compactOverrideDelta(enrichmentOverride)
+      } else if (hasLegacyNulls) {
+        hasOverrideUpdate = true
+        persistedOverride = compactOverrideDelta(override)
       }
     }
     if (autoEnrich === false) {
@@ -1730,9 +1745,9 @@ export class ApiManagerService {
         for (const field of MANAGED_MODEL_FIELDS) if (profile[field] === null) delete profile[field]
       }
       validateModelProfile(profile, api)
-      return { profile, meta: {}, warnings: [], manualOverride: {}, editorDelta }
+      return { profile, meta: {}, warnings: [], manualOverride: {}, hasOverrideUpdate, persistedOverride }
     }
-    const manualOverride = editorDelta ?? mergeManualOverride(override, explicit)
+    const manualOverride = enrichmentOverride ?? mergeManualOverride(override, explicit)
     const result = enrichModel({
       id: entry.id,
       discovered: discoveryFieldsOf(entry),
@@ -1743,7 +1758,7 @@ export class ApiManagerService {
       routeCompat,
       registryCache: this.registryCache,
     })
-    return { profile: result.profile, meta: result.meta, warnings: result.warnings, manualOverride, editorDelta }
+    return { profile: result.profile, meta: result.meta, warnings: result.warnings, manualOverride, hasOverrideUpdate, persistedOverride }
   }
 
   /** Enrich one discovered model with the stored manual overrides. */
@@ -1965,8 +1980,8 @@ export class ApiManagerService {
       await setCredential(this.deps, credentialRef, pendingApiKey)
       credentialStored = true
     }
-    const editorDeltas = new Map(prepared.filter(item => item.editorDelta !== undefined)
-      .map(item => [item.profile.id, item.editorDelta]))
+    const editorDeltas = new Map(prepared.filter(item => item.hasOverrideUpdate)
+      .map(item => [item.profile.id, item.persistedOverride]))
     const written = []
     for (const group of groups) {
       const changes = group.profile.models.filter(model => editorDeltas.has(model.id))
@@ -2568,11 +2583,10 @@ export class ApiManagerService {
     const storedDelta = isPlainObject(stored[modelId]) ? stored[modelId] : {}
     const merged = { ...storedDelta, ...delta }
     const upstreamChanged = Object.hasOwn(delta, 'upstreamModel')
-    if (merged.upstreamModel === null) delete merged.upstreamModel
     // An explicit null clears the stored field from the configured layer before
-    // re-enriching; changing or clearing an upstream model binding drops
-    // non-manual capability fields so the newly bound upstream model (or
-    // default) answers.
+    // re-enriching and is then stripped from `overrides.json`; changing or
+    // clearing an upstream model binding drops non-manual capability fields so
+    // the newly bound upstream model (or default) answers.
     const configured = { ...cloneValue(existingModel) }
     for (const [field, value] of Object.entries(merged)) {
       if (value === null) delete configured[field]
@@ -2582,16 +2596,17 @@ export class ApiManagerService {
         if (!Object.hasOwn(merged, field) || merged[field] === null) delete configured[field]
       }
     }
+    const persisted = compactOverrideDelta(merged)
     const enriched = enrichModel({
       id: modelId,
       configured,
-      manualOverride: merged,
+      manualOverride: persisted ?? {},
       api: profile.api,
       presetId: presetIdForApi(profile.api),
       routeCompat: isPlainObject(profile.compat) ? profile.compat : undefined,
       registryCache: this.registryCache,
     })
-    await this._writeOverrideDelta(providerId, modelId, Object.keys(merged).length === 0 ? undefined : merged)
+    await this._writeOverrideDelta(providerId, modelId, persisted)
     const nextProfile = {
       ...cloneValue(profile),
       models: (Array.isArray(profile.models) ? profile.models : []).map(model => (model.id === modelId ? enriched.profile : model)),
@@ -2601,7 +2616,7 @@ export class ApiManagerService {
       ok: true,
       provider: providerId,
       model: modelId,
-      override: merged,
+      override: persisted ?? {},
       profile: enriched.profile,
       provenance: enriched.provenance,
       meta: enriched.meta,
