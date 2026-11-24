@@ -647,7 +647,7 @@ window.__ModuleLoader__.load({
       'listAdvanced.boundBadge': '{count} bound',
       'listAdvanced.bindingsTitle': 'Manual upstream model binding',
       'listAdvanced.bindingsHint': 'Bind unmatched configured models to a known upstream model so they inherit context window, output limit, vision, reasoning tiers, and compat switches.',
-      'listAdvanced.bindingsEmpty': 'All configured models matched automatically.',
+      'listAdvanced.bindingsEmpty': 'All configured models have a catalog match.',
       'listAdvanced.unmatched': 'Unmatched',
       'listAdvanced.boundTo': 'Bound → {target}',
       'listAdvanced.boundUnmatched': 'Bound → {target} (unmatched)',
@@ -659,7 +659,7 @@ window.__ModuleLoader__.load({
       'listAdvanced.bindPick': 'Bind',
       'listAdvanced.bindNeedTarget': 'Enter or pick an upstream model id first.',
       'listAdvanced.bindSaved': 'Bound "{model}" to "{target}" and applied capabilities live.',
-      'listAdvanced.bindSavedUnmatched': 'Bound "{model}" to "{target}", but no catalog entry or rule matched that id.',
+      'listAdvanced.bindSavedUnmatched': 'Bound "{model}" to "{target}", but no catalog entry matched that id.',
       'listAdvanced.unbindSaved': 'Removed upstream binding for "{model}".',
       'listAdvanced.catalogLoading': 'Loading upstream model catalog…',
       'listAdvanced.catalogEmpty': 'No matching catalog model; you can still type any upstream id above and bind directly.',
@@ -744,8 +744,8 @@ window.__ModuleLoader__.load({
       'model.batchSubagent': 'Allow subagent ({count})',
       'model.batchRemove': 'Remove ({count})',
       'model.batchRemoved': 'Removed {count} model(s).',
-      'model.batchMatched': 'Matched info for {count} model(s).',
-      'model.batchMatchPartial': 'Matched {count} model(s); {failed} kept existing values.',
+      'model.batchMatched': 'Updated parameters for {count} model(s).',
+      'model.batchMatchPartial': 'Updated parameters for {count} model(s). {failed} kept existing values.',
       'model.batchSubagentSaved': 'Allowed {count} model(s) for subagents.',
       'model.selectOne': 'Select {id}',
       'model.emptyTitle': 'No model configured yet',
@@ -765,7 +765,12 @@ window.__ModuleLoader__.load({
       'model.reasoningHint': 'Pick the tiers this model accepts. A blank mapping falls back to the tier name, and "off" maps to null.',
       'model.effortMapping': 'Mapping',
       'model.match': 'Match model info',
-      'model.matched': 'Model info matched.',
+      'model.matched': 'Offline catalog match · {id}',
+      'model.registryMatch': 'Online registry match · {id}',
+      'model.ruleMatch': 'Estimated from family rule · {id}',
+      'model.ambiguousMatch': '{count} reference models match. Choose an upstream model.',
+      'model.ambiguousDraftMatch': '{count} reference models match. After saving, choose one under Model matching & import/export.',
+      'model.noMatch': 'No catalog match. Using available parameters.',
       'model.setDefault': 'Set as default',
       'model.defaultSaved': 'Default model set to "{model}".',
       'model.allowSubagent': 'Allow subagent',
@@ -895,7 +900,7 @@ window.__ModuleLoader__.load({
       'listAdvanced.boundBadge': '已绑定 {count} 个',
       'listAdvanced.bindingsTitle': '未匹配模型手动绑定',
       'listAdvanced.bindingsHint': '将现有配置中未自动匹配的模型手动绑定到已知上游模型，自动继承其上下文窗口、输出上限、视觉、思考档位与兼容开关。',
-      'listAdvanced.bindingsEmpty': '当前所有已配置模型均已自动匹配，无需手动绑定。',
+      'listAdvanced.bindingsEmpty': '当前已配置模型均有模型库记录。',
       'listAdvanced.unmatched': '未匹配',
       'listAdvanced.boundTo': '已绑定 → {target}',
       'listAdvanced.boundUnmatched': '已绑定 → {target}（未命中）',
@@ -907,7 +912,7 @@ window.__ModuleLoader__.load({
       'listAdvanced.bindPick': '绑定',
       'listAdvanced.bindNeedTarget': '请先输入或选择一个上游模型 ID。',
       'listAdvanced.bindSaved': '已将「{model}」绑定到「{target}」，参数已实时生效。',
-      'listAdvanced.bindSavedUnmatched': '已将「{model}」绑定到「{target}」，但模型库与规则中暂未命中该上游 ID。',
+      'listAdvanced.bindSavedUnmatched': '已将「{model}」绑定到「{target}」，但模型库中暂未命中该上游 ID。',
       'listAdvanced.unbindSaved': '已解除「{model}」的上游模型绑定。',
       'listAdvanced.catalogLoading': '正在加载上游模型库…',
       'listAdvanced.catalogEmpty': '模型库中无匹配项，仍可在上方直接输入新上游模型 ID 进行绑定。',
@@ -992,8 +997,8 @@ window.__ModuleLoader__.load({
       'model.batchSubagent': '允许子代理 ({count})',
       'model.batchRemove': '批量移除 ({count})',
       'model.batchRemoved': '已移除 {count} 个模型。',
-      'model.batchMatched': '已为 {count} 个模型匹配信息。',
-      'model.batchMatchPartial': '已匹配 {count} 个模型，{failed} 个保留原值。',
+      'model.batchMatched': '已更新 {count} 个模型的参数。',
+      'model.batchMatchPartial': '已更新 {count} 个模型的参数，{failed} 个保留原值。',
       'model.batchSubagentSaved': '已允许 {count} 个模型供子代理调用。',
       'model.selectOne': '选择 {id}',
       'model.emptyTitle': '还没有模型',
@@ -1013,7 +1018,12 @@ window.__ModuleLoader__.load({
       'model.reasoningHint': '勾选该模型支持的档位；映射值留空时，off 为 null，其余档位默认使用档位名。',
       'model.effortMapping': '映射值',
       'model.match': '匹配此模型信息',
-      'model.matched': '已匹配模型信息。',
+      'model.matched': '离线模型库命中 · {id}',
+      'model.registryMatch': '在线模型库命中 · {id}',
+      'model.ruleMatch': '族规则推断 · {id}',
+      'model.ambiguousMatch': '有 {count} 个参考模型符合条件，请选择上游模型。',
+      'model.ambiguousDraftMatch': '有 {count} 个参考模型符合条件。保存后可在「模型匹配与导入导出」中选择。',
+      'model.noMatch': '未命中模型库，使用已有参数或默认值。',
       'model.setDefault': '设为默认模型',
       'model.defaultSaved': '已将「{model}」设为默认模型。',
       'model.allowSubagent': '允许子代理',
@@ -1512,6 +1522,19 @@ window.__ModuleLoader__.load({
       }
       return Object.keys(picked).length === 0 ? null : picked
     }
+    /** Explain the match evidence supplied by the Host for one model. */
+    function modelMatchLabel(t, meta, inDraft = false) {
+      if (!isPlainObject(meta)) return null
+      const count = Array.isArray(meta.ambiguousModelIds) ? meta.ambiguousModelIds.length : 0
+      if (count > 0) {
+        return inDraft ? t('model.ambiguousDraftMatch', { count }) : t('model.ambiguousMatch', { count })
+      }
+      if (typeof meta.matchedRegistryId === 'string') return t('model.registryMatch', { id: meta.matchedRegistryId })
+      if (typeof meta.matchedCatalogId === 'string') return t('model.matched', { id: meta.matchedCatalogId })
+      if (typeof meta.matchedRuleId === 'string') return t('model.ruleMatch', { id: meta.matchedRuleId })
+      return t('model.noMatch')
+    }
+
     /** Build one blank model draft for a model id. */
     function blankModelDraft(id) {
       return {
@@ -1523,6 +1546,7 @@ window.__ModuleLoader__.load({
         input: ['text'],
         reasoning: false,
         efforts: {},
+        manualFields: {},
         discovered: null,
       }
     }
@@ -1539,48 +1563,42 @@ window.__ModuleLoader__.load({
         input: values.length === 0 ? ['text'] : values,
         reasoning: Object.keys(efforts).length > 0,
         efforts,
+        manualFields: {},
+        match: isPlainObject(model.match) ? model.match : null,
         discovered: null,
       }
     }
     /**
-     * Merge one enriched profile into a model draft.
-     *
-     * A name identical to the id is dropped so it is not written as an explicit
-     * manual override that would shadow future catalog names.
-     * @param {object} model - model draft.
-     * @param {object} profile - enriched model profile.
-     * @returns {object} the updated model draft.
+     * Refresh the preview and leave fields the user has edited in this draft alone.
+     * An explicit match can be saved even when automatic matching is disabled.
      */
-    function applyProfileToModelDraft(model, profile) {
-      const next = { ...model }
-      if (typeof profile.name === 'string' && profile.name.trim() !== '' && profile.name !== next.id) next.name = profile.name
-      if (Number.isInteger(profile.contextWindow) && profile.contextWindow > 0) next.contextWindow = String(profile.contextWindow)
-      if (Number.isInteger(profile.maxTokens) && profile.maxTokens > 0) next.maxTokens = String(profile.maxTokens)
-      if (Array.isArray(profile.input) && profile.input.length > 0) {
+    function applyMatchToModelDraft(model, result, matchedInDraft = false) {
+      const profile = result.profile
+      const next = { ...model, match: result.meta ?? null, matchedInDraft }
+      const manual = model.manualFields ?? {}
+      if (!manual.name && typeof profile.name === 'string') next.name = profile.name === model.id.trim() ? '' : profile.name
+      if (!manual.contextWindow && Number.isInteger(profile.contextWindow) && profile.contextWindow > 0) next.contextWindow = String(profile.contextWindow)
+      if (!manual.maxTokens && Number.isInteger(profile.maxTokens) && profile.maxTokens > 0) next.maxTokens = String(profile.maxTokens)
+      if (!manual.input && Array.isArray(profile.input) && profile.input.length > 0) {
         const input = profile.input.filter(value => MODALITIES.includes(value))
         next.input = input.length === 0 ? ['text'] : input
       }
-      if (profile.reasoningEfforts === false) {
-        next.reasoning = false
-        next.efforts = {}
-      } else if (isPlainObject(profile.reasoningEfforts) && Object.keys(profile.reasoningEfforts).length > 0) {
-        next.reasoning = true
+      if (!manual.reasoningEfforts) {
         next.efforts = effortMapToDraft(profile.reasoningEfforts)
+        next.reasoning = Object.keys(next.efforts).length > 0
+        next.matchedNonReasoning = profile.reasoningEfforts === false
       }
       return next
     }
-    /** Build a model draft from one fetched entry and an optional enriched profile. */
-    function modelFromDiscovery(entry, profile) {
+    /** Keep the endpoint's original facts separate from the preview. */
+    function modelFromDiscovery(entry, result) {
       const model = blankModelDraft(entry.id)
-      const merged = isPlainObject(profile) ? applyProfileToModelDraft(model, profile) : model
-      merged.discovered = pickDiscoveryFields(entry)
-      return merged
+      model.discovered = pickDiscoveryFields(entry)
+      return result === undefined ? model : applyMatchToModelDraft(model, result)
     }
     /** Build the enrich request entry of one model draft. */
     function discoveryPayloadOf(model) {
-      const entry = { id: model.id }
-      if (isPlainObject(model.discovered)) Object.assign(entry, model.discovered)
-      return entry
+      return isPlainObject(model.discovered) ? { id: model.id, discovered: model.discovered } : { id: model.id }
     }
     /** The capability preview of one model draft. */
     function modelDraftProfile(model, api) {
@@ -1674,6 +1692,7 @@ window.__ModuleLoader__.load({
           catalogError: null,
           editingTarget: null,
           upstreamInput: '',
+          catalogQuery: '',
           importText: '',
           importFormat: 'auto',
           exportText: '',
@@ -1863,17 +1882,17 @@ window.__ModuleLoader__.load({
           }
           if (advanced.registry === null && advanced.catalogLoading !== true) void loadCatalog('')
         }
-        const openBindTarget = (provider, modelId, currentUpstream = '') => {
+        const openBindTarget = (provider, modelId, upstreamInput, catalogQuery) => {
           cancelCatalogSearch()
-          patchAdvanced({ editingTarget: { provider, modelId }, upstreamInput: currentUpstream })
-          void loadCatalog(currentUpstream)
+          patchAdvanced({ editingTarget: { provider, modelId }, upstreamInput, catalogQuery })
+          void loadCatalog(catalogQuery)
         }
         const closeBindTarget = () => {
           cancelCatalogSearch()
-          patchAdvanced({ editingTarget: null, upstreamInput: '' })
+          patchAdvanced({ editingTarget: null, upstreamInput: '', catalogQuery: '' })
         }
         const onUpstreamInputChange = value => {
-          patchAdvanced({ upstreamInput: value })
+          patchAdvanced({ upstreamInput: value, catalogQuery: value })
           scheduleCatalogSearch(value)
         }
         /** Bind one existing model to an upstream reference model and re-enrich live. */
@@ -1883,12 +1902,12 @@ window.__ModuleLoader__.load({
           cancelCatalogSearch()
           const result = await call('saveOverride', { provider, modelId, override: { upstreamModel: target } })
           if (!result.ok) return failHost(result)
-          patchAdvanced({ editingTarget: null, upstreamInput: '' })
+          patchAdvanced({ editingTarget: null, upstreamInput: '', catalogQuery: '' })
           await refresh()
           const meta = isPlainObject(result.value?.meta) ? result.value.meta : null
-          const matched = meta !== null && (meta.matchedCatalogId !== null || meta.matchedRegistryId !== null || meta.matchedRuleId !== null)
+          const matched = typeof meta?.matchedCatalogId === 'string' || typeof meta?.matchedRegistryId === 'string'
           patchView({
-            notice: matched || meta === null
+            notice: matched
               ? t('listAdvanced.bindSaved', { model: modelId, target })
               : t('listAdvanced.bindSavedUnmatched', { model: modelId, target }),
           })
@@ -1901,7 +1920,7 @@ window.__ModuleLoader__.load({
             current.editingTarget !== null
             && current.editingTarget.provider === provider
             && current.editingTarget.modelId === modelId
-              ? { ...current, editingTarget: null, upstreamInput: '' }
+              ? { ...current, editingTarget: null, upstreamInput: '', catalogQuery: '' }
               : current
           ))
           await refresh()
@@ -1917,7 +1936,7 @@ window.__ModuleLoader__.load({
           const result = await call('refreshRegistry', { force: true })
           if (!result.ok) return failHost(result)
           await refresh()
-          await loadCatalog(advanced.editingTarget === null ? '' : advanced.upstreamInput)
+          await loadCatalog(advanced.editingTarget === null ? '' : advanced.catalogQuery)
           patchView({ notice: t('listAdvanced.registryRefreshed', { count: typeof result.value?.modelCount === 'number' ? result.value.modelCount : 0 }) })
         })
         /** Toggle offline-only mode for the model knowledge base. */
@@ -1925,7 +1944,7 @@ window.__ModuleLoader__.load({
           const offlineOnly = checked === true
           const result = await call('refreshRegistry', { offlineOnly, force: false })
           if (!result.ok) return failHost(result)
-          await loadCatalog(advanced.editingTarget === null ? '' : advanced.upstreamInput)
+          await loadCatalog(advanced.editingTarget === null ? '' : advanced.catalogQuery)
           patchView({ notice: offlineOnly ? t('listAdvanced.registryOfflineOn') : t('listAdvanced.registryOfflineOff') })
         })
         /** Import third-party provider configuration text. */
@@ -1988,10 +2007,40 @@ window.__ModuleLoader__.load({
         const onSetAsDefaultChange = value => setDraft(current => (current === null ? current : { ...current, setAsDefault: value }))
         const onEnableSubagentChange = value => setDraft(current => (current === null ? current : { ...current, enableSubagent: value }))
         const patchCompat = (fieldName, value) => setDraft(current => (current === null ? current : { ...current, compatDraft: { ...current.compatDraft, [fieldName]: value } }))
-        const patchModel = (modelKey, patch) => setDraft(current => (current === null ? current : {
+        const patchModel = (modelKey, patch, field) => setDraft(current => (current === null ? current : {
           ...current,
-          models: current.models.map(model => (model.key === modelKey ? { ...model, ...patch } : model)),
+          models: current.models.map(model => (model.key !== modelKey ? model : {
+            ...model,
+            ...patch,
+            manualFields: { ...model.manualFields, [field]: true },
+          })),
         }))
+        const changeModelId = (modelKey, id) => {
+          const previousId = draft?.models.find(model => model.key === modelKey)?.id
+          const changed = previousId?.trim() !== id.trim()
+          if (changed) {
+            invalidateDraftOps()
+            patchView({ notice: '' })
+          }
+          setDraft(current => (current === null ? current : {
+            ...current,
+            models: current.models.map(model => {
+              if (model.key !== modelKey) return model
+              if (!changed) return { ...model, id }
+              const manual = model.manualFields ?? {}
+              return {
+                ...model, id,
+                discovered: null, match: null, matchedInDraft: false, matchedNonReasoning: false,
+                name: manual.name ? model.name : '',
+                contextWindow: manual.contextWindow ? model.contextWindow : '',
+                maxTokens: manual.maxTokens ? model.maxTokens : '',
+                input: manual.input ? model.input : ['text'],
+                reasoning: manual.reasoningEfforts === true && model.reasoning === true,
+                efforts: manual.reasoningEfforts ? model.efforts : {},
+              }
+            }),
+          }))
+        }
         const toggleModelExpanded = modelKey => setDraft(current => {
           if (current === null) return current
           const expanded = current.expandedKeys.includes(modelKey)
@@ -2048,7 +2097,7 @@ window.__ModuleLoader__.load({
             if (model.key !== modelKey) return model
             const next = model.input.filter(value => value !== modality)
             if (enabled === true && !next.includes(modality)) next.push(modality)
-            return { ...model, input: next.length === 0 ? ['text'] : next }
+            return { ...model, input: next.length === 0 ? ['text'] : next, manualFields: { ...(isPlainObject(model.manualFields) ? model.manualFields : {}), input: true } }
           }),
         }))
         const toggleModelReasoning = (modelKey, enabled) => setDraft(current => {
@@ -2057,11 +2106,11 @@ window.__ModuleLoader__.load({
             ...current,
             models: current.models.map(model => {
               if (model.key !== modelKey) return model
-              if (enabled !== true) return { ...model, reasoning: false }
+              if (enabled !== true) return { ...model, reasoning: false, manualFields: { ...(isPlainObject(model.manualFields) ? model.manualFields : {}), reasoningEfforts: true } }
               // Turning reasoning on for a model that never declared levels seeds
               // the protocol defaults so its effort tiles are usable at once.
               const efforts = Object.keys(model.efforts).length > 0 ? model.efforts : defaultReasoningEfforts(current.api)
-              return { ...model, reasoning: true, efforts }
+              return { ...model, reasoning: true, efforts, manualFields: { ...(isPlainObject(model.manualFields) ? model.manualFields : {}), reasoningEfforts: true } }
             }),
           }
         })
@@ -2075,12 +2124,16 @@ window.__ModuleLoader__.load({
             if (enabled === true) efforts[level] = level === 'off' ? null : level
             else delete efforts[level]
             const hasTier = Object.keys(efforts).some(name => name !== 'off')
-            return { ...model, efforts, reasoning: hasTier ? model.reasoning : false }
+            return { ...model, efforts, reasoning: hasTier ? model.reasoning : false, manualFields: { ...(isPlainObject(model.manualFields) ? model.manualFields : {}), reasoningEfforts: true } }
           }),
         }))
         const setModelEffortValue = (modelKey, level, value) => setDraft(current => (current === null ? current : {
           ...current,
-          models: current.models.map(model => (model.key === modelKey ? { ...model, efforts: { ...model.efforts, [level]: value } } : model)),
+          models: current.models.map(model => (model.key === modelKey ? {
+            ...model,
+            efforts: { ...model.efforts, [level]: value },
+            manualFields: { ...(isPlainObject(model.manualFields) ? model.manualFields : {}), reasoningEfforts: true },
+          } : model)),
         }))
         const patchDiscovery = patch => setDraft(current => {
           if (current === null || current.discovery === null) return current
@@ -2136,7 +2189,8 @@ window.__ModuleLoader__.load({
           let enrichFailure = null
           if (current.autoMatch === true) {
             const token = beginDraftOp()
-            const request = { api: current.api, presetId: PRESET_ID_BY_API[current.api], models: fresh }
+            const models = fresh.map(entry => discoveryPayloadOf({ id: entry.id, discovered: pickDiscoveryFields(entry) }))
+            const request = { api: current.api, presetId: PRESET_ID_BY_API[current.api], models }
             if (current.mode === 'edit') request.provider = current.provider
             const enriched = await call('enrich', request)
             if (isStaleDraftOp(token)) return
@@ -2144,23 +2198,23 @@ window.__ModuleLoader__.load({
               const profiles = new Map()
               const resultModels = Array.isArray(enriched.value?.models) ? enriched.value.models : []
               for (const item of resultModels) {
-                if (isPlainObject(item) && typeof item.id === 'string' && isPlainObject(item.profile)) profiles.set(item.id, item.profile)
+                if (isPlainObject(item) && typeof item.id === 'string' && isPlainObject(item.profile)) profiles.set(item.id, item)
               }
               added = fresh.map(entry => {
                 const profile = profiles.get(entry.id)
                 if (profile === undefined) {
                   failed += 1
-                  return modelFromDiscovery(entry, null)
+                  return modelFromDiscovery(entry)
                 }
                 return modelFromDiscovery(entry, profile)
               })
             } else {
-              added = fresh.map(entry => modelFromDiscovery(entry, null))
+              added = fresh.map(entry => modelFromDiscovery(entry))
               failed = fresh.length
               enrichFailure = enriched
             }
           } else {
-            added = fresh.map(entry => modelFromDiscovery(entry, null))
+            added = fresh.map(entry => modelFromDiscovery(entry))
           }
           setDraft(state => {
             if (state === null) return state
@@ -2243,21 +2297,25 @@ window.__ModuleLoader__.load({
           if (id === '') return fail('invalid-model-id', t('form.invalidModelId'))
           const token = beginDraftOp()
           const request = { api: current.api, presetId: PRESET_ID_BY_API[current.api], models: [discoveryPayloadOf({ ...model, id })] }
-          if (current.mode === 'edit') request.provider = current.provider
+          if (current.mode === 'edit') {
+            request.provider = current.provider
+            request.refresh = true
+          }
           const result = await call('enrich', request)
           if (isStaleDraftOp(token)) return
           if (!result.ok) { patchView({ failure: result }); return }
           const resultModels = Array.isArray(result.value?.models) ? result.value.models : []
-          const item = resultModels.find(entry => isPlainObject(entry) && entry.id === id) ?? resultModels[0]
+          const item = resultModels.find(entry => isPlainObject(entry) && entry.id === id)
           if (!isPlainObject(item?.profile)) return fail('invalid-response')
           setDraft(state => {
             if (state === null) return state
             return {
               ...state,
-              models: state.models.map(entry => (entry.key === modelKey ? applyProfileToModelDraft(entry, item.profile) : entry)),
+              models: state.models.map(entry => (entry.key === modelKey && entry.id.trim() === id
+                ? applyMatchToModelDraft(entry, item, true) : entry)),
             }
           })
-          patchView({ notice: t('model.matched') })
+          patchView({ notice: modelMatchLabel(t, item.meta, true) ?? t('model.noMatch') })
         })
         /** Re-enrich every selected configured model in one batched call. */
         const matchSelectedModels = () => withBusy(async () => {
@@ -2275,14 +2333,17 @@ window.__ModuleLoader__.load({
             presetId: PRESET_ID_BY_API[current.api],
             models: targets.map(item => discoveryPayloadOf({ ...item.model, id: item.id })),
           }
-          if (current.mode === 'edit') request.provider = current.provider
+          if (current.mode === 'edit') {
+            request.provider = current.provider
+            request.refresh = true
+          }
           const result = await call('enrich', request)
           if (isStaleDraftOp(token)) return
           if (!result.ok) { patchView({ failure: result }); return }
           const profiles = new Map()
           const resultModels = Array.isArray(result.value?.models) ? result.value.models : []
           for (const item of resultModels) {
-            if (isPlainObject(item) && typeof item.id === 'string' && isPlainObject(item.profile)) profiles.set(item.id, item.profile)
+            if (isPlainObject(item) && typeof item.id === 'string' && isPlainObject(item.profile)) profiles.set(item.id, item)
           }
           const matchedByKey = new Map()
           let failed = 0
@@ -2297,7 +2358,7 @@ window.__ModuleLoader__.load({
               ...state,
               models: state.models.map(entry => {
                 const profile = matchedByKey.get(entry.key)
-                return profile === undefined ? entry : applyProfileToModelDraft(entry, profile)
+                return profile === undefined || entry.id.trim() !== profile.id ? entry : applyMatchToModelDraft(entry, profile, true)
               }),
             }
           })
@@ -2379,21 +2440,24 @@ window.__ModuleLoader__.load({
             if (id === '') throw new Error(t('form.invalidModelId'))
             if (seen.has(id)) throw new Error(t('form.duplicateModelId', { id }))
             seen.add(id)
-            const entry = { id }
+            const manualFields = model.manualFields ?? {}
+            const entry = { id, manualFields }
+            const keepPreview = current.autoMatch !== true && model.matchedInDraft === true
             const name = typeof model.name === 'string' ? model.name.trim() : ''
-            if (name !== '' && name !== id) entry.name = name
-            const contextWindow = parseOptionalPositiveInteger(model.contextWindow)
-            if (contextWindow === null) throw new Error(t('form.invalidNumber', { field: t('model.contextWindow') }))
-            if (contextWindow !== undefined) entry.contextWindow = contextWindow
-            const maxTokens = parseOptionalPositiveInteger(model.maxTokens)
-            if (maxTokens === null) throw new Error(t('form.invalidNumber', { field: t('model.maxTokens') }))
-            if (maxTokens !== undefined) entry.maxTokens = maxTokens
-            entry.input = Array.isArray(model.input) && model.input.length > 0 ? [...model.input] : ['text']
+            if (manualFields.name) entry.name = name || null
+            else if (keepPreview && name) entry.name = name
+            for (const [field, label] of [['contextWindow', t('model.contextWindow')], ['maxTokens', t('model.maxTokens')]]) {
+              const value = parseOptionalPositiveInteger(model[field])
+              if (value === null) throw new Error(t('form.invalidNumber', { field: label }))
+              if (manualFields[field]) entry[field] = value ?? null
+              else if (keepPreview && value !== undefined) entry[field] = value
+            }
+            if (manualFields.input || keepPreview) entry.input = [...model.input]
             const efforts = buildReasoningEfforts(model, current.api)
-            // An explicit `false` keeps auto-match from reopening reasoning the
-            // user switched off; `lib/presets.js` accepts it on every protocol.
-            if (efforts === false) entry.reasoningEfforts = false
-            else if (efforts !== undefined) entry.reasoningEfforts = efforts
+            if (manualFields.reasoningEfforts) entry.reasoningEfforts = efforts ?? null
+            else if (keepPreview && (model.reasoning || model.matchedNonReasoning)) entry.reasoningEfforts = efforts
+            if (current.autoMatch === true && isPlainObject(model.discovered)) entry.discovered = model.discovered
+            if (current.mode === 'edit' && current.autoMatch === true && model.matchedInDraft === true) entry.rematch = true
             entries.push(entry)
           }
           return entries
@@ -2528,6 +2592,7 @@ window.__ModuleLoader__.load({
           const selected = selectedKeysOf(current).includes(model.key)
           const isEdit = current.mode === 'edit'
           const chips = capabilityChips(t, modelDraftProfile(model, current.api), `model-${model.key}`)
+          const matchLabel = modelMatchLabel(t, model.match, true)
           const hasText = model.input.includes('text')
           const hasImage = model.input.includes('image')
           return h('li', {
@@ -2544,6 +2609,7 @@ window.__ModuleLoader__.load({
                 h('span', { className: 'xxa-modelId' }, model.id === '' ? t('model.id') : model.id),
                 model.name !== '' && model.name !== model.id ? h('span', { className: 'xxa-modelName' }, model.name) : null,
                 chips,
+                matchLabel === null ? null : h('span', { className: 'xxa-hint' }, matchLabel),
               ),
               h('div', { className: 'xxa-actions xxa-modelActions' },
                 button([expanded ? t('model.collapse') : t('model.settings'), iconChevron(expanded)], () => { toggleModelExpanded(model.key) }, {
@@ -2554,26 +2620,26 @@ window.__ModuleLoader__.load({
             ),
             !expanded ? null : h('div', { className: 'xxa-modelCardBody' },
               h('div', { className: 'xxa-gridTwo' },
-                field(t('model.id'), input(model.id, value => { patchModel(model.key, { id: value }) }, {
+                field(t('model.id'), input(model.id, value => { changeModelId(model.key, value) }, {
                   mono: true, placeholder: 'model-id', ariaLabel: t('model.id'),
                 })),
-                field(t('model.name'), input(model.name, value => { patchModel(model.key, { name: value }) }, {
+                field(t('model.name'), input(model.name, value => { patchModel(model.key, { name: value }, 'name') }, {
                   placeholder: t('model.namePlaceholder'), ariaLabel: t('model.name'),
                 })),
                 field(t('model.contextWindow'),
                   h('div', { className: 'xxa-subSection' },
-                    input(model.contextWindow, value => { patchModel(model.key, { contextWindow: value }) }, { numeric: true, ariaLabel: t('model.contextWindow') }),
+                    input(model.contextWindow, value => { patchModel(model.key, { contextWindow: value }, 'contextWindow') }, { numeric: true, ariaLabel: t('model.contextWindow') }),
                     h('div', { className: 'xxa-chipGroup' },
-                      CONTEXT_WINDOW_PRESETS.map(preset => button(preset.label, () => { patchModel(model.key, { contextWindow: String(preset.value) }) }, {
+                      CONTEXT_WINDOW_PRESETS.map(preset => button(preset.label, () => { patchModel(model.key, { contextWindow: String(preset.value) }, 'contextWindow') }, {
                         chip: true, active: model.contextWindow.trim() === String(preset.value), key: `context-${preset.value}`, title: t('model.contextWindow'),
                       })),
                     ),
                   )),
                 field(t('model.maxTokens'),
                   h('div', { className: 'xxa-subSection' },
-                    input(model.maxTokens, value => { patchModel(model.key, { maxTokens: value }) }, { numeric: true, ariaLabel: t('model.maxTokens') }),
+                    input(model.maxTokens, value => { patchModel(model.key, { maxTokens: value }, 'maxTokens') }, { numeric: true, ariaLabel: t('model.maxTokens') }),
                     h('div', { className: 'xxa-chipGroup' },
-                      MAX_TOKENS_PRESETS.map(preset => button(preset.label, () => { patchModel(model.key, { maxTokens: String(preset.value) }) }, {
+                      MAX_TOKENS_PRESETS.map(preset => button(preset.label, () => { patchModel(model.key, { maxTokens: String(preset.value) }, 'maxTokens') }, {
                         chip: true, active: model.maxTokens.trim() === String(preset.value), key: `max-${preset.value}`, title: t('model.maxTokens'),
                       })),
                     ),
@@ -3003,7 +3069,7 @@ window.__ModuleLoader__.load({
                 : h('div', { className: 'xxa-error xxa-errorInline', role: 'alert' },
                   h('span', null, t('listAdvanced.catalogFailed', { reason: failureText(t, advanced.catalogError) })),
                   button(t('listAdvanced.catalogRetry'), () => {
-                    void loadCatalog(editing === null ? '' : advanced.upstreamInput)
+                    void loadCatalog(editing === null ? '' : advanced.catalogQuery)
                   }, { small: true, disabled: view.busy || advanced.catalogLoading === true }),
                 ),
               h('div', { className: 'xxa-subSection' },
@@ -3024,13 +3090,20 @@ window.__ModuleLoader__.load({
                               row.bindingMatched ? 'Accent' : 'Warn',
                               `bind-state-${row.key}`,
                             )
-                            : badge(t('listAdvanced.unmatched'), 'Warn', `bind-state-${row.key}`),
+                            : badge(modelMatchLabel(t, row.model.match) ?? t('listAdvanced.unmatched'), 'Warn', `bind-state-${row.key}`),
+                          row.upstreamModel !== null && !row.bindingMatched
+                            ? h('span', { className: 'xxa-hint' }, modelMatchLabel(t, row.model.match)) : null,
                           capabilityChips(t, row.model, `bind-cap-${row.key}`),
                         ),
                         h('div', { className: 'xxa-actions' },
                           button(row.upstreamModel !== null ? t('listAdvanced.rebind') : t('listAdvanced.bind'), () => {
                             if (isEditing) closeBindTarget()
-                            else openBindTarget(row.provider, row.modelId, row.upstreamModel ?? '')
+                            else {
+                              const ambiguous = row.model.match?.ambiguousModelIds?.length > 0
+                              const currentUpstream = row.upstreamModel ?? ''
+                              const query = currentUpstream || (ambiguous ? row.modelId : '')
+                              openBindTarget(row.provider, row.modelId, ambiguous ? '' : currentUpstream, query)
+                            }
                           }, { small: true, disabled: view.busy }),
                           row.upstreamModel === null ? null : button(t('listAdvanced.unbind'), () => {
                             void unbindUpstreamModel(row.provider, row.modelId)
@@ -3048,7 +3121,7 @@ window.__ModuleLoader__.load({
                           }),
                           button(t('listAdvanced.bindConfirm'), () => {
                             void bindUpstreamModel(row.provider, row.modelId, advanced.upstreamInput)
-                          }, { small: true, primary: true, disabled: view.busy }),
+                          }, { small: true, primary: true, disabled: view.busy || advanced.upstreamInput.trim() === '' }),
                           button(t('common.cancel'), closeBindTarget, { small: true, disabled: view.busy }),
                         ),
                         advanced.catalogLoading === true

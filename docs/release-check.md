@@ -2,19 +2,19 @@
 
 ## 结论
 
-已完成 `@xiaoxing/api-provider-manager` `0.1.0` 的实现、UI/UX 审查修复、全量隔离测试、分发包检查以及在 DSH Desktop `0.2.2-rc.3` profile 中的实机安装与联调验证。当前保持 `private: true`，未推送、上传或配置远程仓库。
+已完成 `@xiaoxing/api-provider-manager` `0.1.0` 的实现、UI/UX 与模型匹配修复、全量隔离测试、分发包检查以及在 DSH Desktop `0.2.2-rc.3` profile 中的实机安装与联调验证。当前保持 `private: true`，不执行 npm 上传。
 
 ## 已通过
 
 | 检查 | 结果与证据范围 |
 |---|---|
 | 包契约与语法检查 | [check-package.mjs](<../scripts/check-package.mjs>) 通过：清单、exports、`cordis.patch.yml`、精选 169 个主流离线模型 / 234 条别名（约 65 KB）、70 条家族规则、12 个库模块、`client.js` 语法、图标、locale 元数据及 37 条文档链接全部通过。 |
-| 行为与回归测试 | [tests/run.mjs](<../tests/run.mjs>) 运行 6 个独立进程套件：共 301 项，299 项通过、0 失败、2 跳过（Windows 沙盒符号链接创建返回 `EPERM`，源码 `lstat` 拒绝逻辑保留）。 |
+| 行为与回归测试 | [tests/run.mjs](<../tests/run.mjs>) 运行 6 个独立进程套件：共 311 项，309 项通过、0 失败、2 跳过（Windows 沙盒符号链接创建返回 `EPERM`，源码 `lstat` 拒绝逻辑保留）。 |
 | 原生供应商避让 | 实机通过 `xiaoxing_api_manager` 工具与单测验证 `deepseek-official`（native）与 `openai`（builtin-catalog）均在配置写入前被 `reserved-native-provider` 拒绝。 |
 | 凭据与持久化安全 | 密钥通过 `ctx.credentials` 只写保管（`$DSH_HOME/.credentials.yaml`），`cordis.patch.yml` 只写 `apiKeyEnv` 引用，错误与工具返回经过 `redactSecretText` 脱敏；数据文件采用 `0o600` 原子写入，损坏 JSON 报 `invalid-state` 不静默清空。 |
 | 自动同步、IM 实时同步与保护 | `syncProviderModels` / `syncAllCustomProviders` / `runBackgroundMaintenance` 经单测与模拟端点验证单飞去重、冷却期、`add-new`/`mirror`、空列表/网络失败回退保护、默认自动同步与 `manual` 退出、已排除模型不被加回、后台定时周期的触发与卸载清理，以及子代理授权联动。 |
 | 分发包与解包冒烟 | `pnpm pack` 生成新版 `.tgz`，仅包含运行时与文档必需文件；在 `.local` 临时解包目录中独立进程验证模块导入、5 套预设及 `deepseek-v4.1-flash` / `claude-sonnet-4-5` 自动补全正常，随后清理临时目录。 |
-| 实机安装与热更新闭环 | 在 DSH `0.2.2-rc.3` `desktop` profile 安装返回 `application: "applied"`、无警告；`list_plugins` 为 `active`；用临时路由 `xiaoxing-smoke-test` 实测 `upsertProvider` → `listCustomProviders` → `removeProvider({ removeCredential: true })` 即时生效与彻底清理，现有 `cpa` / `anyrouter` 配置零改动。 |
+| 实机安装与热更新闭环 | 在 DSH `0.2.2-rc.3` `desktop` profile 安装返回 `application: "applied"`、无警告；`list_plugins` 为 `active`；用临时路由 `xiaoxing-smoke-test` 实测 `upsertProvider` → `listCustomProviders` → `removeProvider({ removeCredential: true })` 即时生效与彻底清理，已有自定义通道配置零改动。 |
 | Git | 独立仓库签名保持 `xiaoxing-nya <xiaoxing_bot@luoli.my>`，无未忽略的私有数据或临时脚本。 |
 
 ## 范围约束

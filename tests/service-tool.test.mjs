@@ -899,6 +899,167 @@ describe('custom provider onboarding', () => {
     }
   })
 
+  test('editor saves recompute automatic values and persist only manual capabilities', async () => {
+    const harness = new HostHarness()
+    const service = await createService(harness)
+    const provider = 'metadata-relay'
+    const id = 'relay-reference-model'
+    const automaticId = 'relay-automatic-model'
+    const publishRegistry = (contextWindow, maxTokens, efforts) => {
+      service.registryCache = { models: Object.fromEntries([id, automaticId].map(modelId => [modelId, {
+        id: modelId, name: 'Reference Model', contextWindow, maxTokens,
+        input: ['text', 'image'], reasoning: true, efforts,
+      }])) }
+    }
+    try {
+      await service.initialize()
+      await service.refreshRegistry({ offlineOnly: true })
+      publishRegistry(128_000, 16_384, ['low'])
+      const preview = await service.enrich({ models: [id, automaticId] })
+      assert.equal(preview.models[0].profile.contextWindow, 128_000)
+
+      publishRegistry(256_000, 32_768, ['high'])
+      const saved = await service.upsertProvider({
+        provider, baseURL: 'https://metadata.example/v1',
+        models: [
+          { ...preview.models[0].profile, maxTokens: 8_192, reasoningEfforts: false, manualFields: { maxTokens: true, reasoningEfforts: true } },
+          { ...preview.models[1].profile, manualFields: {}, discovered: { contextWindow: 180_000 } },
+        ],
+      })
+      assert.equal(saved.ok, true, rendered(saved))
+      const [manual, automatic] = harness.providers()[provider].models
+      assert.equal(manual.contextWindow, 256_000)
+      assert.equal(manual.maxTokens, 8_192)
+      assert.equal(manual.reasoningEfforts, false)
+      assert.equal(automatic.contextWindow, 180_000, 'real endpoint facts stay above the catalog')
+      assert.equal(automatic.maxTokens, 32_768)
+      assert.deepEqual(automatic.reasoningEfforts, { off: null, high: 'high' })
+      assert.equal(Object.hasOwn(automatic, 'discovered') || Object.hasOwn(automatic, 'manualFields'), false)
+      const overrides = await readStore(service, 'overrides.json')
+      assert.deepEqual(overrides.providers[provider].models[id], { maxTokens: 8192, reasoningEfforts: false })
+
+      publishRegistry(300_000, 48_000, ['medium'])
+      const rematched = await service.enrich({ provider })
+      assert.equal(rematched.ok, true, rendered(rematched))
+      assert.equal(rematched.models[0].profile.maxTokens, 8192)
+      assert.equal(rematched.models[0].provenance.reasoningEfforts, 'manual')
+      assert.equal(rematched.models[1].profile.contextWindow, 300_000)
+      assert.deepEqual(rematched.models[1].profile.reasoningEfforts, { off: null, medium: 'medium' })
+      assert.equal(rematched.models[1].provenance.reasoningEfforts, 'remote-registry')
+
+      // An unsuccessful profile write restores the previous sparse overrides.
+      harness.forcedConflicts.push(LLM_PI_AI_ID, LLM_PI_AI_ID)
+      const rejected = await service.upsertProvider({ provider, models: [
+        { id, maxTokens: 4_096, manualFields: { maxTokens: true } },
+        { id: automaticId, manualFields: {} },
+      ] })
+      assert.equal(rejected.code, 'config-conflict')
+      assert.deepEqual(await readStore(service, 'overrides.json'), overrides)
+      assert.deepEqual(harness.providers()[provider].models, [manual, automatic])
+    } finally {
+      service.dispose()
+    }
+  })
+
+  test('refresh enrich and rematch save recover stale configured reasoningEfforts:false while preserving manual overrides', async () => {
+    const harness = new HostHarness()
+    seedProvider(harness, 'stale-relay', {
+      ...SEEDED_PROFILE,
+      models: [
+        { id: 'claude-sonnet-5-5', name: 'Claude Sonnet 5.5', contextWindow: 1_000_000, maxTokens: 128_000, input: ['text', 'image'], reasoningEfforts: false },
+        { id: 'gpt-6-astra-cc-format', name: 'GPT 6', contextWindow: 64_000, maxTokens: 8_192, input: ['text'], reasoningEfforts: false },
+        { id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6', contextWindow: 200_000, maxTokens: 64_000, input: ['text', 'image'], reasoningEfforts: false },
+      ],
+    })
+    const service = await createService(harness)
+    try {
+      await service.initialize()
+      await service.refreshRegistry({ offlineOnly: true })
+      service.registryCache = {
+        models: {
+          'claude-sonnet-5-5': {
+            id: 'claude-sonnet-5-5',
+            name: 'Claude Sonnet 5.5',
+            contextWindow: 1_000_000,
+            maxTokens: 128_000,
+            input: ['text', 'image'],
+            reasoning: true,
+            allowOff: false,
+            efforts: ['low', 'medium', 'high', 'xhigh', 'max'],
+          },
+          'claude-sonnet-4-6': {
+            id: 'claude-sonnet-4-6',
+            name: 'Claude Sonnet 4.6',
+            contextWindow: 200_000,
+            maxTokens: 64_000,
+            input: ['text', 'image'],
+            reasoning: true,
+            allowOff: true,
+            efforts: ['off', 'low', 'medium', 'high', 'max'],
+          },
+        },
+      }
+      // Explicitly disable reasoning on claude-sonnet-4-6 via manual override.
+      const disabled = await service.saveOverride({
+        provider: 'stale-relay',
+        model: 'claude-sonnet-4-6',
+        override: { reasoningEfforts: false },
+      })
+      assert.equal(disabled.ok, true, rendered(disabled))
+
+      // Explicit refresh ignores stale configured values for both registry-matched and rule-only models.
+      const refreshed = await service.enrich({
+        provider: 'stale-relay',
+        refresh: true,
+        models: [{ id: 'claude-sonnet-5-5' }, { id: 'gpt-6-astra-cc-format' }, { id: 'claude-sonnet-4-6' }],
+      })
+      assert.equal(refreshed.ok, true, rendered(refreshed))
+      const byId = Object.fromEntries(refreshed.models.map(item => [item.id, item]))
+      assert.deepEqual(byId['claude-sonnet-5-5'].profile.reasoningEfforts, { low: 'low', medium: 'medium', high: 'high', xhigh: 'xhigh', max: 'max' })
+      assert.equal(byId['claude-sonnet-5-5'].provenance.reasoningEfforts, 'remote-registry')
+      assert.equal(isPlainObject(byId['gpt-6-astra-cc-format'].profile.reasoningEfforts), true)
+      assert.equal(byId['gpt-6-astra-cc-format'].provenance.reasoningEfforts, 'heuristic')
+      assert.equal(byId['claude-sonnet-4-6'].profile.reasoningEfforts, false)
+      assert.equal(byId['claude-sonnet-4-6'].provenance.reasoningEfforts, 'manual')
+
+      // Saving the rematched edit form persists the refreshed reasoning tiers and strips internal flags.
+      const saved = await service.upsertProvider({
+        provider: 'stale-relay',
+        models: [
+          { id: 'claude-sonnet-5-5', manualFields: {}, rematch: true },
+          { id: 'gpt-6-astra-cc-format', manualFields: {}, rematch: true },
+          { id: 'claude-sonnet-4-6', manualFields: {}, rematch: true },
+        ],
+      })
+      assert.equal(saved.ok, true, rendered(saved))
+      const persisted = Object.fromEntries(harness.providers()['stale-relay'].models.map(model => [model.id, model]))
+      assert.deepEqual(persisted['claude-sonnet-5-5'].reasoningEfforts, { low: 'low', medium: 'medium', high: 'high', xhigh: 'xhigh', max: 'max' })
+      assert.equal(isPlainObject(persisted['gpt-6-astra-cc-format'].reasoningEfforts), true)
+      assert.equal(persisted['claude-sonnet-4-6'].reasoningEfforts, false)
+      assert.equal(Object.hasOwn(persisted['claude-sonnet-5-5'], 'rematch'), false)
+    } finally {
+      service.dispose()
+    }
+  })
+
+  test('rule-only models stay available for upstream binding', async () => {
+    const harness = new HostHarness()
+    const id = 'gpt-5.5-gateway-only'
+    seedProvider(harness, 'rule-relay', { ...SEEDED_PROFILE, models: [{ id }] })
+    const service = await createService(harness)
+    try {
+      const listed = await service.listCustomProviders({})
+      assert.equal(listed.ok, true)
+      const row = listed.providers[0]
+      assert.deepEqual(row.unmatchedModels, [id])
+      assert.equal(row.models[0].match.matchedRuleId, 'gpt-5')
+      assert.equal(row.models[0].match.matchedCatalogId, null)
+      assert.equal(row.models[0].match.matchedRegistryId, null)
+    } finally {
+      service.dispose()
+    }
+  })
+
   test('update works through the configuration editor when the settings service is absent', async () => {
     const harness = new HostHarness({ settings: false })
     const service = await createService(harness)

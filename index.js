@@ -344,10 +344,12 @@ function normalizeModelEntries(entryList) {
  */
 function explicitManagedFields(entry) {
   const claims = {}
-  for (const field of MANAGED_MODEL_FIELDS) {
-    if (Object.hasOwn(entry, field)) claims[field] = cloneValue(entry[field])
+  const editorFields = isPlainObject(entry.manualFields) ? entry.manualFields : null
+  for (const field of [...MANAGED_MODEL_FIELDS, 'allowOff']) {
+    if (Object.hasOwn(entry, field) && (editorFields === null || editorFields[field] === true)) {
+      claims[field] = cloneValue(entry[field])
+    }
   }
-  if (Object.hasOwn(entry, 'allowOff')) claims.allowOff = entry.allowOff
   return claims
 }
 
@@ -357,6 +359,8 @@ function explicitManagedFields(entry) {
  * @returns {Record<string, unknown> | undefined} the discovery claims, or `undefined`.
  */
 function discoveryFieldsOf(entry) {
+  if (isPlainObject(entry.discovered)) return entry.discovered
+  if (isPlainObject(entry.manualFields)) return undefined
   if (!DISCOVERY_FIELDS.some(field => Object.hasOwn(entry, field))) return undefined
   return entry
 }
@@ -738,6 +742,7 @@ export class ApiManagerService {
       for (const { provider, profile } of customProviders) {
         let audit
         const unmatchedModels = []
+        const modelMatchInfo = new Map()
         const upstreamBindings = {}
         const providerOverrides = isPlainObject(overrides[provider]?.models) ? overrides[provider].models : {}
         try {
@@ -751,13 +756,16 @@ export class ApiManagerService {
             const modelId = suggestion?.profile?.id
             const meta = suggestion?.meta
             if (typeof modelId !== 'string' || !isPlainObject(meta)) continue
-            const matchedSource = meta.matchedRegistryId !== null
-              ? 'registry'
-              : meta.matchedCatalogId !== null
-                ? 'catalog'
-                : meta.matchedRuleId !== null
-                  ? 'rule'
+            const ambiguousModelIds = Array.isArray(meta.ambiguousModelIds) ? meta.ambiguousModelIds : []
+            const matchedSource = ambiguousModelIds.length > 0
+              ? null
+              : meta.matchedRegistryId !== null
+                ? 'registry'
+                : meta.matchedCatalogId !== null
+                  ? 'catalog'
                   : null
+            modelMatchInfo.set(modelId, meta)
+            // Keep rule-only and ambiguous models available for upstream binding.
             if (matchedSource === null) unmatchedModels.push(modelId)
             const boundUpstream = typeof meta.upstreamModel === 'string' && meta.upstreamModel.length > 0
               ? meta.upstreamModel
@@ -802,7 +810,10 @@ export class ApiManagerService {
           ...(isPlainObject(profile.compat) ? { compat: cloneValue(profile.compat) } : {}),
           ...(headers !== undefined ? { headers } : {}),
           modelCount: Array.isArray(profile.models) ? profile.models.length : 0,
-          models: summarizeModels(profile.models),
+          models: summarizeModels(profile.models).map(model => ({
+            ...model,
+            match: modelMatchInfo.get(model.id) ?? null,
+          })),
           unmatchedModels,
           upstreamBindings,
           credential,
@@ -923,7 +934,7 @@ export class ApiManagerService {
         entries = [{ id: requiredString(req.modelId, 'modelId') }]
       }
       if (entries.length === 0 && Array.isArray(profile.models)) {
-        entries = profile.models.map(model => ({ ...cloneValue(model), id: model.id }))
+        entries = profile.models.map(model => ({ id: model.id }))
       }
       if (entries.length === 0) {
         throw new ApiManagerError('invalid-request', 'enrich needs models, a modelId, or a configured provider with models')
@@ -932,11 +943,12 @@ export class ApiManagerService {
         (Array.isArray(profile.models) ? profile.models : []).map(model => [model.id, model]),
       )
       const routeCompat = isPlainObject(profile.compat) ? profile.compat : undefined
+      const ignoreConfigured = req.refresh === true
       const models = entries.map(entry => {
         const result = enrichModel({
           id: entry.id,
           discovered: discoveryFieldsOf(entry),
-          configured: configuredById.get(entry.id),
+          configured: ignoreConfigured ? undefined : configuredById.get(entry.id),
           manualOverride: mergeManualOverride(overrides[entry.id], explicitManagedFields(entry)),
           api,
           presetId,
@@ -1623,20 +1635,27 @@ export class ApiManagerService {
     return isPlainObject(provider) && isPlainObject(provider.models) ? cloneValue(provider.models) : {}
   }
 
-  /** Persist or delete one stored model override delta. */
-  async _writeOverrideDelta(providerId, modelId, delta) {
+  /** Apply sparse model deltas in one store write and return the previous values. */
+  async _writeOverrideDeltas(providerId, changes) {
+    const previous = new Map()
     await this.stores.overrides.update(data => {
-      const providers = isPlainObject(data.providers) ? data.providers : (data.providers = {})
-      const provider = isPlainObject(providers[providerId]) ? providers[providerId] : (providers[providerId] = { models: {} })
-      if (!isPlainObject(provider.models)) provider.models = {}
-      if (delta === undefined) {
-        delete provider.models[modelId]
-        if (Object.keys(provider.models).length === 0) delete providers[providerId]
-      } else {
-        provider.models[modelId] = cloneValue(delta)
+      const models = Object.entries(data.providers[providerId]?.models ?? {})
+      const next = new Map(models)
+      for (const [modelId, delta] of changes) {
+        previous.set(modelId, next.get(modelId))
+        if (delta === undefined) next.delete(modelId)
+        else next.set(modelId, cloneValue(delta))
       }
+      if (next.size === 0) delete data.providers[providerId]
+      else data.providers[providerId] = { ...data.providers[providerId], models: Object.fromEntries(next) }
       return data
     })
+    return previous
+  }
+
+  /** Persist or delete one stored model override delta. */
+  _writeOverrideDelta(providerId, modelId, delta) {
+    return this._writeOverrideDeltas(providerId, [[modelId, delta]])
   }
 
   /** Persist one provider model list with conflict retry. */
@@ -1683,24 +1702,48 @@ export class ApiManagerService {
 
   /** Prepare one model entry for persistence through the enrichment precedence. */
   _prepareModelForSave({ entry, api, presetId, existingModel, override, autoEnrich, routeCompat }) {
-    if (autoEnrich === false) {
-      const profile = cloneValue(entry)
-      for (const field of ['discovered', ...DISCOVERY_FIELDS, 'description', 'type']) delete profile[field]
-      validateModelProfile(profile, api)
-      return { profile, meta: {}, warnings: [], manualOverride: {} }
+    const editing = isPlainObject(entry.manualFields)
+    const rematch = entry.rematch === true
+    const explicit = explicitManagedFields(entry)
+    let editorDelta
+    if (editing) {
+      // Keep generated reasoning refreshable. Older configured effort maps
+      // without an override retain their existing precedence unless rematched.
+      const canAddReasoning = autoEnrich || Object.hasOwn(entry, 'reasoningEfforts')
+      const refreshableReasoning = existingModel?.reasoningEfforts === undefined
+        || existingModel?.reasoningEfforts === false
+        || rematch
+      if (canAddReasoning && refreshableReasoning
+        && !Object.hasOwn(explicit, 'reasoningEfforts') && !Object.hasOwn(override ?? {}, 'reasoningEfforts')) {
+        explicit.reasoningEfforts = null
+      }
+      if (Object.keys(explicit).length > 0) {
+        editorDelta = mergeManualOverride(override, validateOverrideDelta(explicit))
+      }
     }
-    const manualOverride = mergeManualOverride(override, explicitManagedFields(entry))
+    if (autoEnrich === false) {
+      const profile = editing ? { ...cloneValue(existingModel ?? {}), ...cloneValue(entry) } : cloneValue(entry)
+      for (const field of ['discovered', 'manualFields', 'rematch', 'description', 'type', ...DISCOVERY_FIELDS]) {
+        if (!editing || !MANAGED_MODEL_FIELDS.includes(field)) delete profile[field]
+      }
+      if (editing) {
+        for (const field of MANAGED_MODEL_FIELDS) if (profile[field] === null) delete profile[field]
+      }
+      validateModelProfile(profile, api)
+      return { profile, meta: {}, warnings: [], manualOverride: {}, editorDelta }
+    }
+    const manualOverride = editorDelta ?? mergeManualOverride(override, explicit)
     const result = enrichModel({
       id: entry.id,
       discovered: discoveryFieldsOf(entry),
-      configured: existingModel,
+      configured: rematch ? undefined : existingModel,
       manualOverride,
       api,
       presetId,
       routeCompat,
       registryCache: this.registryCache,
     })
-    return { profile: result.profile, meta: result.meta, warnings: result.warnings, manualOverride }
+    return { profile: result.profile, meta: result.meta, warnings: result.warnings, manualOverride, editorDelta }
   }
 
   /** Enrich one discovered model with the stored manual overrides. */
@@ -1922,9 +1965,25 @@ export class ApiManagerService {
       await setCredential(this.deps, credentialRef, pendingApiKey)
       credentialStored = true
     }
+    const editorDeltas = new Map(prepared.filter(item => item.editorDelta !== undefined)
+      .map(item => [item.profile.id, item.editorDelta]))
     const written = []
     for (const group of groups) {
-      await this._commitPiAiProfile(group.provider, group.profile)
+      const changes = group.profile.models.filter(model => editorDeltas.has(model.id))
+        .map(model => [model.id, editorDeltas.get(model.id)])
+      const previous = changes.length > 0 ? await this._writeOverrideDeltas(group.provider, changes) : null
+      try {
+        await this._commitPiAiProfile(group.provider, group.profile)
+      } catch (error) {
+        if (previous !== null) {
+          try {
+            await this._writeOverrideDeltas(group.provider, previous)
+          } catch (restoreError) {
+            this._warn(this._redact(`model overrides could not be restored: ${messageOf(restoreError)}`))
+          }
+        }
+        throw error
+      }
       written.push(group)
     }
     const primary = written[0]

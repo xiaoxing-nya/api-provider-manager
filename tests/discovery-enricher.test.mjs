@@ -705,6 +705,67 @@ describe('lookupOfflineCatalog and matchFamilyRule', () => {
     assert.equal(lookupOfflineCatalog('deepseek-v4.1-flash-1017')?.id, 'deepseek-v4.1-flash')
   })
 
+  test('exact model ids outrank colliding dated variants and ambiguous inferences are not selected', () => {
+    const colliding = {
+      models: {
+        'example-model-20260101': { id: 'example-model-20260101', contextWindow: 32768 },
+        'example-model': { id: 'example-model', contextWindow: 128000 },
+        'vendor-a/shared-model': { id: 'vendor-a/shared-model', contextWindow: 64000 },
+        'vendor-b/shared-model': { id: 'vendor-b/shared-model', contextWindow: 96000 },
+      },
+      aliases: {},
+    }
+    assert.equal(lookupOfflineCatalog('example-model', colliding)?.id, 'example-model')
+    assert.equal(lookupOfflineCatalog('example-model-20260101', colliding)?.id, 'example-model-20260101')
+    const id = 'unqualified/shared-model'
+    const ids = ['vendor-a/shared-model', 'vendor-b/shared-model']
+    assert.equal(lookupOfflineCatalog(id, colliding), null)
+    const result = enrichModel({ id, offlineCatalog: colliding, familyRules: [] })
+    assert.equal(result.meta.matchedCatalogId, null)
+    assert.deepEqual(result.meta.ambiguousModelIds, ids)
+    assert.equal(result.provenance.contextWindow, 'fallback')
+    assert.deepEqual(result.warnings.map(warning => warning.code), ['ambiguous-model-match'])
+    const search = searchCatalogModels({ query: id, offlineCatalog: colliding })
+    assert.deepEqual(search.models.map(model => model.id), ids)
+    assert.equal(search.total, 2)
+  })
+
+  test('online and offline matching share identity precedence without mixing models', () => {
+    const offlineCatalog = {
+      models: { 'relay-model': { id: 'relay-model', contextWindow: 320000 } },
+      aliases: { 'relay-preview': 'relay-model' },
+    }
+    const registryCache = {
+      models: {
+        'relay-model-20260101': { id: 'relay-model-20260101', contextWindow: 200000 },
+        other: { id: 'other', contextWindow: 64000 },
+      },
+      aliases: { 'online-preview': 'other' },
+    }
+    const options = { offlineCatalog, registryCache }
+    for (const [query, expected] of [['relay-model', 'relay-model'], ['relay-preview', 'relay-model'], ['online-preview', 'other']]) {
+      const { meta, profile } = enrichModel({ id: query, ...options })
+      assert.equal(meta.matchedRegistryId ?? meta.matchedCatalogId, expected)
+      assert.equal(searchCatalogModels({ query, limit: 1, ...options }).models[0]?.id, expected)
+      assert.equal(profile.contextWindow, expected === 'other' ? 64000 : 320000)
+    }
+    const conflict = enrichModel({ id: 'relay-model-20260201', ...options })
+    assert.deepEqual(conflict.meta.ambiguousModelIds, ['relay-model', 'relay-model-20260101'])
+    assert.equal(conflict.meta.matchedRegistryId, null)
+  })
+
+  test('offline aliases are searchable by their exact spelling', () => {
+    for (const [alias, target] of [
+      ['claude-sonnet-4.5', 'claude-sonnet-4-5'],
+      ['gemini-4-argon-high', 'gemini-4-argon'],
+      ['deepseek-v4.1-flash-1017', 'deepseek-v4.1-flash'],
+    ]) {
+      const result = searchCatalogModels({ query: alias, limit: 10 })
+      assert.equal(result.models[0]?.id, target, alias)
+      assert.ok(result.total >= 1, alias)
+    }
+  })
+
   test('matches family rules against normalized and dot/hyphen spellings', () => {
     assert.equal(matchFamilyRule('sample-model-x-20260101', RULES)?.id, 'sample-rule')
     assert.equal(matchFamilyRule('Sample.Model.X', RULES)?.id, 'sample-rule')
@@ -1346,6 +1407,44 @@ describe('auditProvider', () => {
       audit.issueCount,
     )
     assert.equal(typeof audit.summary.message, 'string')
+  })
+
+  test('bare configured reasoningEfforts:false yields to registry/catalog facts unless manually overridden', () => {
+    const registryCache = {
+      models: {
+        'claude-sonnet-5-5': {
+          id: 'claude-sonnet-5-5',
+          name: 'Claude Sonnet 5.5',
+          contextWindow: 1_000_000,
+          maxTokens: 128_000,
+          input: ['text', 'image'],
+          reasoning: true,
+          allowOff: false,
+          efforts: ['low', 'medium', 'high', 'xhigh', 'max'],
+        },
+      },
+    }
+    const configuredFalse = { id: 'claude-sonnet-5-5', reasoningEfforts: false }
+    const healed = enrichModel({ id: 'claude-sonnet-5-5', configured: configuredFalse, registryCache })
+    assert.deepEqual(healed.profile.reasoningEfforts, { low: 'low', medium: 'medium', high: 'high', xhigh: 'xhigh', max: 'max' })
+    assert.equal(healed.provenance.reasoningEfforts, 'remote-registry')
+
+    const manualOff = enrichModel({
+      id: 'claude-sonnet-5-5',
+      configured: configuredFalse,
+      manualOverride: { reasoningEfforts: false },
+      registryCache,
+    })
+    assert.equal(manualOff.profile.reasoningEfforts, false)
+    assert.equal(manualOff.provenance.reasoningEfforts, 'manual')
+
+    const customMap = enrichModel({
+      id: 'claude-sonnet-5-5',
+      configured: { id: 'claude-sonnet-5-5', reasoningEfforts: { low: 'low', max: 'max' } },
+      registryCache,
+    })
+    assert.deepEqual(customMap.profile.reasoningEfforts, { low: 'low', max: 'max' })
+    assert.equal(customMap.provenance.reasoningEfforts, 'configured')
   })
 
   test('reports unknown models and preserves configured reasoning efforts', () => {

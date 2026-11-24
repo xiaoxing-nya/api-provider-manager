@@ -351,6 +351,7 @@ function modelFixture(id, extra = {}) {
     input: ['text'],
     reasoning: false,
     efforts: {},
+    manualFields: {},
     discovered: null,
     ...extra,
   }
@@ -1248,6 +1249,48 @@ test('level-one advanced fold lazily loads catalog models, binds unmatched model
   failingCatalog.client.dispose()
 })
 
+test('ambiguous rows use the original id to search and require a binding target', async () => {
+  const id = 'shared-model'
+  const candidates = ['vendor-a/shared-model', 'vendor-b/shared-model']
+  const { client, tree, render } = await renderSection({
+    data: { available: true, providers: [{
+      ...providerFixture,
+      models: [{ id, match: { ambiguousModelIds: candidates } }],
+      unmatchedModels: [id],
+    }] },
+    responses: {
+      getRegistryStatus: request => ({
+        catalogTotal: request.query === id ? 2 : 0,
+        catalogModels: request.query === id ? candidates.map(candidate => ({ id: candidate })) : [],
+      }),
+      saveOverride: { meta: { matchedCatalogId: candidates[1] } },
+      listCustomProviders: { available: true, providers: [] },
+    },
+  })
+  const fold = findElements(tree, node => node.type === 'details' && node.props.className === 'xxa-fold')[0]
+  fold.props.onToggle({ target: { open: true } })
+  await settle()
+  buttonByLabel(render(), 'listAdvanced.bind').props.onClick()
+  await settle()
+
+  const editor = render()
+  assert.match(uiText(editor), /model\.ambiguousMatch/u)
+  assert.equal(client.remoteCalls.filter(call => call.method === 'getRegistryStatus').at(-1).request.query, id)
+  const target = inputByAria(editor, 'listAdvanced.targetPlaceholder')
+  assert.equal(target.props.value, '')
+  assert.equal(buttonByLabel(editor, 'listAdvanced.bindConfirm').props.disabled, true)
+  target.props.onKeyDown({ key: 'Enter', preventDefault() {} })
+  await settle()
+  assert.equal(client.remoteCalls.some(call => call.method === 'saveOverride'), false)
+
+  const picked = findElements(render(), node => node.type === 'li' && node.props.key === `upstream-${candidates[1]}`)[0]
+  buttonByLabel(picked, 'listAdvanced.bindPick').props.onClick()
+  await settle()
+  const bind = client.remoteCalls.find(call => call.method === 'saveOverride')
+  assert.deepEqual(plain(bind.request), { provider: 'my-relay', modelId: id, override: { upstreamModel: candidates[1] } })
+  client.dispose()
+})
+
 /* -------------------------------------------------------------------------- */
 /* Level two: create                                                          */
 /* -------------------------------------------------------------------------- */
@@ -1382,6 +1425,7 @@ test('auto-match off adds clean model entries without calling enrich', async () 
     input: ['text'],
     reasoning: false,
     efforts: {},
+    manualFields: {},
     discovered: null,
   })
   client.dispose()
@@ -1474,7 +1518,7 @@ test('the discover panel filters, selects, and adds fetched models with their en
       enrich: request => ({
         models: request.models.map(entry => ({
           id: entry.id,
-          profile: { id: entry.id, name: entry.name ?? entry.id, contextWindow: entry.contextWindow ?? 200000, maxTokens: entry.maxTokens ?? 8192, input: entry.input ?? ['text'] },
+          profile: { id: entry.id, name: entry.discovered?.name ?? entry.id, contextWindow: entry.discovered?.contextWindow ?? 200000, maxTokens: entry.discovered?.maxTokens ?? 8192, input: entry.discovered?.input ?? ['text'] },
         })),
       }),
     },
@@ -1527,7 +1571,7 @@ test('the discover panel filters, selects, and adds fetched models with their en
   await settle()
   const batchEnrich = client.remoteCalls.filter(call => call.method === 'enrich').at(-1)
   assert.deepEqual(plain(batchEnrich.request.models.map(entry => entry.id)), ['a'])
-  const passed = batchEnrich.request.models[0]
+  const passed = batchEnrich.request.models[0].discovered
   assert.equal(passed.contextWindow, 128000)
   assert.equal(passed.maxTokens, 8192)
   assert.deepEqual(plain(passed.input), ['text', 'image'])
@@ -1664,6 +1708,7 @@ test('matching one model re-enriches it on demand and applies the result', async
       enrich: {
         models: [{
           id: 'm1',
+          meta: { matchedRuleId: 'demo-rule', matchedCatalogId: null, matchedRegistryId: null },
           profile: { id: 'm1', name: 'Matched Name', contextWindow: 131072, maxTokens: 16384, input: ['text', 'image'], reasoningEfforts: { off: null, high: 'high' } },
         }],
       },
@@ -1683,7 +1728,87 @@ test('matching one model re-enriches it on demand and applies the result', async
   assert.deepEqual(plain(model.input), ['text', 'image'])
   assert.equal(model.reasoning, true)
   assert.deepEqual(plain(model.efforts), { off: null, high: 'high' })
-  assert.equal(client.react.cells[1].notice, 'model.matched')
+  assert.equal(client.react.cells[1].notice, 'model.ruleMatch')
+  assert.match(uiText(render()), /model\.ruleMatch/u)
+  client.dispose()
+})
+
+test('rematching refreshes the preview and saving keeps explicitly edited fields', async () => {
+  const { client, render } = await openCreatePage({
+    draft: createDraftFixture({
+      baseURL: 'https://relay.example/v1',
+      models: [modelFixture('m1', {
+        contextWindow: '128000', maxTokens: '8192', reasoning: true, efforts: { off: null, low: 'low' },
+        discovered: { name: 'Gateway alias' },
+      })],
+      expandedKeys: ['model-m1'],
+    }),
+    responses: {
+      enrich: { models: [{
+        id: 'm1',
+        meta: { matchedRegistryId: 'upstream-model' },
+        profile: { id: 'm1', contextWindow: 256000, maxTokens: 32000, reasoningEfforts: { high: 'high' } },
+      }] },
+      listCustomProviders: { available: true, providers: [] },
+    },
+  })
+  inputByAria(render(), 'model.maxTokens').props.onChange({ target: { value: '4096' } })
+  switchByLabel(render(), 'model.reasoning').props.onClick()
+  buttonByLabel(render(), 'model.match').props.onClick()
+  await settle()
+  const [model] = client.react.cells[2].models
+  assert.equal(model.contextWindow, '256000')
+  assert.equal(model.maxTokens, '4096')
+  assert.equal(model.reasoning, false)
+  assert.equal(client.react.cells[1].notice, 'model.registryMatch')
+  buttonByLabel(render(), 'form.saveCreate').props.onClick()
+  await settle()
+  const save = client.remoteCalls.find(call => call.method === 'upsertProvider')
+  assert.deepEqual(plain(save.request.models), [{
+    id: 'm1', maxTokens: 4096, reasoningEfforts: false,
+    manualFields: { maxTokens: true, reasoningEfforts: true }, discovered: { name: 'Gateway alias' },
+  }])
+  client.dispose()
+})
+
+test('changing a model id drops prior match evidence and keeps manual edits', async () => {
+  const { client, render } = await openCreatePage({
+    draft: createDraftFixture({
+      baseURL: 'https://relay.example/v1',
+      models: [modelFixture('old-id', {
+        name: 'Old model', contextWindow: '128000', maxTokens: '4096', input: ['text', 'image'],
+        reasoning: true, efforts: { high: 'high' }, discovered: { contextWindow: 128000 },
+        match: { matchedCatalogId: 'old-id' }, matchedInDraft: true,
+        manualFields: { maxTokens: true },
+      })],
+      expandedKeys: ['model-old-id'],
+    }),
+    responses: {
+      enrich: { models: [{
+        id: 'new-id', profile: { id: 'new-id', contextWindow: 256000 },
+        meta: { ambiguousModelIds: ['org-a/new-id', 'org-b/new-id'] },
+      }] },
+      listCustomProviders: { available: true, providers: [] },
+    },
+  })
+  inputByAria(render(), 'model.id').props.onChange({ target: { value: 'new-id' } })
+  const [model] = client.react.cells[2].models
+  assert.equal(model.discovered, null)
+  assert.equal(model.match, null)
+  assert.equal(model.matchedInDraft, false)
+  assert.equal(model.contextWindow, '')
+  assert.equal(model.reasoning, false)
+  assert.equal(model.maxTokens, '4096')
+
+  buttonByLabel(render(), 'model.match').props.onClick()
+  await settle()
+  const enrich = client.remoteCalls.find(call => call.method === 'enrich')
+  assert.deepEqual(plain(enrich.request.models), [{ id: 'new-id' }])
+  assert.match(uiText(render()), /model\.ambiguousDraftMatch/u)
+  buttonByLabel(render(), 'form.saveCreate').props.onClick()
+  await settle()
+  const save = client.remoteCalls.find(call => call.method === 'upsertProvider')
+  assert.deepEqual(plain(save.request.models), [{ id: 'new-id', maxTokens: 4096, manualFields: { maxTokens: true } }])
   client.dispose()
 })
 
@@ -1764,7 +1889,7 @@ test('saving a new provider sends one write-only, auto-matched payload', async (
       setAsDefault: true,
       enableSubagent: true,
       models: [
-        modelFixture('a', { name: 'Alpha', contextWindow: '128000', maxTokens: '8192', input: ['text', 'image'], reasoning: true, efforts: { off: null, high: 'high' } }),
+        modelFixture('a', { name: 'Alpha', contextWindow: '128000', maxTokens: '8192', input: ['text', 'image'], reasoning: true, efforts: { off: null, high: 'high' }, manualFields: { name: true, reasoningEfforts: true } }),
         modelFixture('b'),
       ],
     }),
@@ -1789,8 +1914,8 @@ test('saving a new provider sends one write-only, auto-matched payload', async (
   assert.deepEqual(plain(upsert.request.headers), { 'X-Test': '1' })
   assert.deepEqual(plain(upsert.request.compat), { supportsStore: false })
   assert.deepEqual(plain(upsert.request.models), [
-    { id: 'a', name: 'Alpha', contextWindow: 128000, maxTokens: 8192, input: ['text', 'image'], reasoningEfforts: { off: null, high: 'high' } },
-    { id: 'b', input: ['text'], reasoningEfforts: false },
+    { id: 'a', name: 'Alpha', reasoningEfforts: { off: null, high: 'high' }, manualFields: { name: true, reasoningEfforts: true } },
+    { id: 'b', manualFields: {} },
   ])
   assert.equal(upsert.request.setAsDefault, true)
   assert.equal(upsert.request.enableSubagent, true)
@@ -1922,7 +2047,7 @@ test('edit saves the same payload shape and preserves untouched secrets and head
   assert.equal(upsert.request.autoEnrich, true)
   assert.deepEqual(plain(upsert.request.compat), { supportsStore: false })
   assert.deepEqual(plain(upsert.request.models.map(model => model.id)), ['a', 'b'])
-  assert.equal(upsert.request.models[0].contextWindow, 128000)
+  assert.deepEqual(plain(upsert.request.models), [{ id: 'a', manualFields: {} }, { id: 'b', manualFields: {} }], 'untouched values do not become overrides')
   assert.deepEqual(plain(upsert.request.syncPolicy), { ignoredModels: ['z'] }, 'stored sync exclusions survive the edit')
   assert.equal(client.react.cells[2], null)
   assert.equal(client.react.cells[1].notice, 'list.updated')
@@ -2173,8 +2298,10 @@ test('configured-model batch match enriches all selected models in one call and 
   const enrichCall = section.client.remoteCalls.find(call => call.method === 'enrich')
   assert(enrichCall, 'batch match issues one enrich call')
   assert.equal(enrichCall.request.provider, 'my-relay')
+  assert.equal(enrichCall.request.refresh, true)
   assert.deepEqual(plain(enrichCall.request.models.map(m => m.id)), ['a', 'gpt-5-mini'])
   assert.equal(section.client.react.cells[2].models.find(m => m.id === 'a').contextWindow, '200000')
+  assert.equal(section.client.react.cells[2].models.find(m => m.id === 'a').reasoning, true)
   assert.equal(section.client.react.cells[2].models.find(m => m.id === 'gpt-5-mini').contextWindow, '128000')
   assert.equal(section.client.react.cells[1].notice, 'model.batchMatched')
 
@@ -2186,6 +2313,16 @@ test('configured-model batch match enriches all selected models in one call and 
   assert(subagentCall, 'batch subagent issues one setDefaults call')
   assert.deepEqual(plain(subagentCall.request), { provider: 'my-relay', addToSubagent: ['a', 'gpt-5-mini'] })
   assert.equal(section.client.react.cells[1].notice, 'model.batchSubagentSaved')
+
+  // Saving the edit form marks only rematched models so the Host recomputes their stale configured fields.
+  buttonByLabel(section.render(), 'form.saveEdit').props.onClick()
+  await settle()
+  const saveCall = section.client.remoteCalls.find(call => call.method === 'upsertProvider')
+  assert(saveCall, 'edit save issues upsertProvider')
+  const savedById = Object.fromEntries(plain(saveCall.request.models).map(model => [model.id, model]))
+  assert.equal(savedById.a.rematch, true)
+  assert.equal(savedById['gpt-5-mini'].rematch, true)
+  assert.equal(savedById.b.rematch, undefined)
   section.client.dispose()
 })
 
@@ -2231,7 +2368,7 @@ test('client source keeps the two-level contracts and preserved invariants', () 
   assert.match(source, /t\('id\.exists'\)/u)
   // Auto-match is forwarded explicitly and failed enrichment never fabricates values.
   assert.match(source, /autoEnrich: current\.autoMatch === true/u)
-  assert.match(source, /if \(efforts === false\) entry\.reasoningEfforts = false/u)
+  assert.match(source, /if \(manualFields\.reasoningEfforts\) entry\.reasoningEfforts = efforts \?\? null/u)
   // Reasoning keeps off: null; the editor clears route compat with an explicit null.
   assert.match(source, /efforts\[level\] = level === 'off' \? null : level/u)
   assert.match(source, /const raw = model\.efforts\.off/u)
